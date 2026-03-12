@@ -1,184 +1,167 @@
 /* ==========================================================================
- * start.S - Codigo de arranque (bootstrap) del firmware Root of Trust
+ * start.S - Bootstrap code for the Root of Trust firmware
  * ==========================================================================
  *
- * Por que es necesario este archivo?
- * ----------------------------------
- * Cuando un procesador se enciende, no tiene idea de nada. No sabe donde
- * esta el stack, no sabe que variables existen, no tiene nada listo.
- * Es como encender una computadora vacia. Alguien tiene que hacer el
- * trabajo de preparar todo antes de que el codigo en C pueda correr.
- * Ese alguien es este archivo.
+ * Why do we need this file?
+ * When a processor powers on, it has nothing set up. No stack, no
+ * variables, no idea where anything is. Think of it like turning on
+ * a completely empty computer. Someone has to do the dirty work of
+ * setting everything up before C code can run. That someone is this file.
  *
- * Que hace paso a paso?
- * ---------------------
- *   1. Desactiva las interrupciones para que nada moleste mientras
- *      estamos configurando el sistema
- *   2. Configura el stack pointer (sp), que es el registro que le dice
- *      al procesador donde guardar datos temporales. Sin esto, ninguna
- *      funcion en C puede funcionar
- *   3. Limpia la seccion BSS. Esta es la zona de memoria donde van las
- *      variables globales que no tienen un valor inicial. El estandar de C
- *      dice que tienen que empezar en cero, asi que las llenamos con ceros
- *   4. Salta a la funcion main() que esta escrita en C
- *   5. Si main() retorna por alguna razon (no deberia en un firmware),
- *      el procesador se queda en un loop infinito sin hacer nada
+ * What does it do step by step?
+ *   1. Disables interrupts so nothing bothers us during setup
+ *   2. Sets up the stack pointer (sp), which is the register that tells
+ *      the processor where to store temporary data. Without this,
+ *      no C function can work at all
+ *   3. Clears the BSS section. This is the memory area where global
+ *      variables without an initial value live. The C standard says
+ *      they must start at zero, so we fill that area with zeros
+ *   4. Jumps to the main() function written in C
+ *   5. If main() ever returns (which should never happen in firmware),
+ *      the processor stays in an infinite loop doing nothing
  *
- * En que contexto corre esto?
- * ---------------------------
- * En Machine mode (M-mode), que es el nivel de privilegio
- * mas alto que existe en RISC-V. Aca tenemos control total sobre el hardware,
- * podemos tocar cualquier registro, cualquier zona de memoria...
- * Mas adelante, este firmware va a usar este poder para configurar la
- * proteccion de memoria (PMP) y despues bajar al codigo de usuario a un
- * nivel de privilegio menor donde ya no pueda tocar los secretos.
+ * What is the execution context here?
+ * This code runs in Machine mode (M-mode), the highest privilege level
+ * in RISC-V. Here we have full control over the hardware, we can touch
+ * any register, any memory region, everything. Later on, our firmware
+ * will use this power to configure memory protection (PMP) and then
+ * drop user code down to a lower privilege level where it can no longer
+ * touch the secrets.
  *
- * Autor: Sebastian Alba
- * Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
+ * Author: Sebastian Alba
+ * Project: Root of Trust Firmware for RISC-V with PMP isolation
  * ========================================================================== */
 
-/* -------------------------------------------------------------------------
- * .section .text.init
- *
- * Aca se le dice al ensamblador que coloque este codigo en una
- * seccion especial llamada .text.init
- *
- * Por que importa esto? Porque en nuestro linker script (virt.ld),
- * esta seccion esta configurada para ir al inicio de la RAM, en la
- * direccion 0x80000000. Eso garantiza que cuando QEMU enciende el
- * procesador simulado, lo primero que ejecuta es ESTE codigo
- * ------------------------------------------------------------------------- */
+/*
+ * We tell the assembler to place this code in the .text.init section.
+ * In our linker script (virt.ld), this section is mapped to the very
+ * beginning of RAM (address 0x80000000), so it is the first thing
+ * the processor executes when it boots up
+ */
 .section .text.init
 
-/* -------------------------------------------------------------------------
- * .global _start
- *
- * Hace que el  _start sea visible para el linker. Sin esto,
- * el linker no podria encontrar el punto de entrada del programa.
- * En el linker script usamos ENTRY(_start) que basicamente dice
- * que la ejecucion del programa empieza en _start
- * ------------------------------------------------------------------------- */
+/*
+ * Make _start visible to the linker. Without this, the linker would
+ * not be able to find our entry point. In virt.ld we use ENTRY(_start)
+ * which basically says "program execution begins at _start"
+ */
 .global _start
 
 _start:
-    /* -----------------------------------------------------------------
+    /*
      * csrw mie, zero
      *
-     * CSR = Control and Status Register
-     *   Son registros especiales del procesador que controlan como se
-     *   comporta. No son registros normales como t0 o sp, son aparte.
+     * CSR stands for Control and Status Register, these are special
+     * registers in the processor that control how it behaves. They
+     * are separate from regular registers like t0 or sp.
      *
-     * mie = Machine Interrupt Enable
-     *   Este CSR en particular controla cuales interrupciones estan
-     *   activadas. Si un bit esta en 1, esa interrupcion esta habilitada.
+     * mie is the Machine Interrupt Enable CSR. It controls which
+     * interrupts are active. If a bit is set to 1, that interrupt
+     * is enabled.
      *
-     * zero = Es un registro especial de RISC-V que SIEMPRE vale 0.
-     *   No importa que le escribamos, siempre va a leer 0.
+     * zero is a special RISC-V register that always reads as 0,
+     * no matter what you write to it.
      *
-     * Entonces lo que hacemos es escribir 0 en mie, lo que desactiva
-     * todas las interrupciones. Esto es importante porque durante el
-     * arranque no queremos que nada nos interrumpa mientras configuramos
-     * el stack y limpiamos la memoria.
-     * ----------------------------------------------------------------- */
+     * So what we are doing here is writing 0 to mie, which turns OFF
+     * all interrupts. We do this because during boot we do not want
+     * anything interrupting us while we set up the stack and clear memory.
+     */
     csrw mie, zero
 
-    /* -----------------------------------------------------------------
+    /*
      * la sp, __stack_top
      *
-     * la = Load Address
-     *   Es una pseudo-instruccion (el ensamblador la convierte en
-     *   instrucciones reales). Carga una direccion de memoria en
-     *   un registro.
+     * la stands for Load Address, it is a pseudo-instruction (the
+     * assembler converts it into real instructions). It loads a
+     * memory address into a register.
      *
-     * sp = Stack Pointer
-     *   Es el registro que apunta al tope de la pila (stack).
+     * sp is the Stack Pointer register, it points to the top of
+     * the stack.
      *
-     * __stack_top = Simbolo definido en el linker script (virt.ld)
-     *   Apunta a la direccion mas alta de la zona que reservamos
-     *   para el stack.
+     * __stack_top is a symbol defined in our linker script (virt.ld).
+     * It points to the highest address of the area we reserved for
+     * the stack.
      *
-     * Por que necesitamos el stack?
-     *   Cada vez que una funcion en C se ejecuta, necesita un lugar
-     *   para guardar sus variables locales, los parametros que recibe,
-     *   y la direccion a la que tiene que volver cuando termine.
-     *   Ese lugar es el stack.
+     * Why do we need the stack?
+     * Every time a C function runs, it needs a place to store its
+     * local variables, the parameters it receives, and the return
+     * address to go back to when it finishes. That place is the stack.
      *
-     * En RISC-V el stack crece para abajo (de direcciones altas a
-     * bajas), por eso lo inicializamos en el tope.
-     * ----------------------------------------------------------------- */
+     * In RISC-V the stack grows downward (from high addresses to low),
+     * which is why we initialize it at the top.
+     */
     la sp, __stack_top
 
-    /* -----------------------------------------------------------------
-     * Limpieza de la seccion BSS
+    /*
+     * BSS clearing
      *
-     * BSS = Block Started by Symbol 
+     * BSS stands for Block Started by Symbol (a historical name from
+     * the early assemblers in the 1950s).
      *
-     * Que hay en el BSS?
-     *   Todas las variables globales que se declaro sin
-     *   darles un valor inicial. Por ejemplo:
-     *     int contador;        <-- va al BSS (no tiene valor)
-     *     int total = 100;     <-- NO va al BSS (tiene valor, va a .data)
+     * What lives in BSS?
+     * All global variables that the programmer declared without giving
+     * them an initial value. For example:
+     *     int counter;        goes to BSS (no value assigned)
+     *     int total = 100;    does NOT go to BSS (has a value, goes to .data)
      *
-     * El estandar de C garantiza que estas variables empiezan en 0.
-     * Pero en bare-metal nadie nos da esa garantia, la memoria RAM
-     * puede tener basura. Entonces nosotros mismos recorremos toda
-     * la zona BSS escribiendo ceros.
+     * The C standard guarantees these variables start at 0. But in
+     * bare-metal nobody gives us that guarantee, RAM can have garbage
+     * data in it. So we manually walk through the entire BSS area
+     * writing zeros.
      *
-     * __bss_start y __bss_end son simbolos que el linker script define
-     * automaticamente para marcar donde empieza y termina el BSS.
-     * ----------------------------------------------------------------- */
-    la t0, __bss_start       /* t0 = direccion donde empieza el BSS */
-    la t1, __bss_end         /* t1 = direccion donde termina el BSS */
+     * __bss_start and __bss_end are symbols that the linker script
+     * defines automatically to mark where BSS begins and ends.
+     */
+    la t0, __bss_start       /* t0 points to the beginning of BSS */
+    la t1, __bss_end         /* t1 points to the end of BSS */
 
 bss_clear:
-    /* Si t0 ya llego a t1 (o se paso), terminamos de limpiar */
+    /* if t0 has reached t1 (or passed it), we are done cleaning */
     bge t0, t1, bss_done
 
-    /* sd = Store Doubleword: guarda 8 bytes (64 bits) de ceros
-       en la direccion que apunta t0. Usamos 8 bytes porque estamos
-       en un procesador de 64 bits */
+    /* sd = Store Doubleword, writes 8 bytes (64 bits) of zeros
+       at the address t0 points to. We use 8 bytes because this
+       is a 64-bit processor */
     sd zero, 0(t0)
 
-    /* Avanzamos el puntero 8 bytes para limpiar el siguiente pedazo */
+    /* move the pointer forward by 8 bytes to clean the next chunk */
     addi t0, t0, 8
 
-    /* Volvemos al inicio del ciclo */
+    /* go back to the top of the loop */
     j bss_clear
 
 bss_done:
-    /* -----------------------------------------------------------------
-     * jal main
-     *
+    /*
      * jal = Jump And Link
-     *   Hace dos cosas a la vez:
-     *   1. Guarda la direccion de la siguiente instruccion (hang) en
-     *      el registro ra (return address)
-     *   2. Salta a la funcion main()
+     * It does two things at once:
+     *   1. Saves the address of the next instruction (hang) into
+     *      the ra (return address) register
+     *   2. Jumps to the main() function
      *
-     *   Cuando main() ejecute ret (return), el procesador lee ra y
-     *   vuelve aca, a la instruccion hang que esta justo abajo
+     * When main() executes ret (return), the processor reads ra
+     * and comes back here, to the hang instruction right below.
      *
-     * A partir de aca el control pasa a codigo C (main.c)
-     * ----------------------------------------------------------------- */
+     * From this point on, control passes to C code (main.c)
+     */
     jal main
 
-    /* -----------------------------------------------------------------
-     * hang: loop infinito de seguridad
+    /*
+     * Safety infinite loop
      *
-     * Si por alguna razon main() retorna (que se supone q ningun firmware
-     *  deberia pasar), nos quedamos aca atrapados.
+     * If for some reason main() returns (which should never happen
+     * in firmware), we get stuck here forever.
      *
-     * wfi = Wait For Interrupt
-     *   Le dice al procesador "no hay nada que hacer, pongase en bajo
-     *   consumo hasta que llegue una interrupcion"
+     * wfi = Wait For Interrupt, it tells the processor "there is
+     * nothing to do, go into low power mode until an interrupt
+     * arrives"
      *
-     * Pero como desactivamos las interrupciones al inicio con
-     * csrw mie, zero... nunca va a llegar ninguna interrupcion
-     * y el procesador se queda dormido para siempre.
+     * But since we disabled all interrupts at the beginning with
+     * csrw mie, zero, no interrupt will ever arrive and the
+     * processor stays asleep forever.
      *
-     * El j hang es por si acaso algun evento espureo despierta al
-     * procesador, que vuelva a ejecutar wfi
-     * ----------------------------------------------------------------- */
+     * The j hang is just in case some spurious event wakes the
+     * processor up, so it goes right back to wfi
+     */
 hang:
     wfi
     j hang

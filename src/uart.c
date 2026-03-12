@@ -1,156 +1,84 @@
 /* ==========================================================================
-
- * uart.c - Implementacion de las funciones para imprimir por UART
-
+ * uart.c - Implementation of the UART printing functions
  * ==========================================================================
-
  *
-
- * Aca esta el codigo real de las funciones que declaramos en uart.h.
-
- * Antes todo esto estaba metido en main.c, pero lo separamos porque
-
- * el main va a crecer bastante cuando agreguemos PMP, Secure Storage
-
- * y todo lo demas. Asi queda mas ordenado.
-
+ * This is where the actual code for the functions declared in uart.h
+ * lives. Before this, everything was crammed into main.c but we split
+ * it out because main is going to grow a lot when we add PMP, Secure
+ * Storage and everything else. Keeps things cleaner this way.
  *
-
- * Lo mas importante de entender aca es como funciona MMIO:
-
- * Para mandar un caracter al UART, no usamos ninguna instruccion
-
- * especial del procesador. Simplemente escribimos el byte en la
-
- * direccion de memoria 0x10000000 y QEMU se encarga de mostrarlo
-
- * en la terminal. Cada escritura en esa direccion = un caracter
-
- * que aparece en pantalla.
-
+ * The key thing to understand here is how MMIO works.
+ * To send a character to the UART, we do not use any special processor
+ * instruction. We just write the byte to the memory address 0x10000000
+ * and QEMU takes care of showing it in the terminal. Every write to
+ * that address equals one character on screen.
  *
-
- * Autor: Sebastian Alba
-
- * Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
-
+ * Author: Sebastian Alba
+ * Project: Root of Trust Firmware for RISC-V with PMP isolation
  * ========================================================================== */
 
 #include "uart.h"
 
 /* -------------------------------------------------------------------------
-
- * uart_putc - Manda un solo caracter al UART
-
+ * uart_putc - Send a single character to the UART
  *
-
- * Lo que hace es crear un puntero a la direccion 0x10000000 y escribir
-
- * el caracter ahi. Nada mas.
-
+ * What it does is create a pointer to address 0x10000000 and write
+ * the character there. That is it.
  *
-
- * El keyword "volatile" es importante: le dice al compilador "cada vez
-
- * que yo escriba en esta direccion, hacelo de verdad, no te lo saltes".
-
- * Sin volatile, el compilador podria pensar "ya escribi en esa direccion,
-
- * para que voy a escribir de nuevo?" y eliminar escrituras. Pero en MMIO
-
- * cada escritura importa porque tiene un efecto real en el hardware.
-
+ * The "volatile" keyword is important here. It tells the compiler
+ * "every time I write to this address, actually do it, do not skip it".
+ * Without volatile the compiler might think "I already wrote to that
+ * address, why would I write again?" and optimize away our writes.
+ * But in MMIO every single write matters because it has a real effect
+ * on the hardware (or in our case, on QEMU).
  * ------------------------------------------------------------------------- */
-
 void uart_putc(char c)
-
 {
-
     volatile uint8_t *uart = (volatile uint8_t *)UART0_BASE;
-
     *uart = c;
-
 }
 
 /* -------------------------------------------------------------------------
-
- * uart_puts - Manda un string completo al UART
-
+ * uart_puts - Send a full string to the UART
  *
-
- * Recorre el string caracter por caracter y llama a uart_putc para
-
- * cada uno. Para cuando encuentra el '\0' (el null terminator que
-
- * marca el final de todo string en C).
-
+ * Walks through the string character by character and calls uart_putc
+ * for each one. Stops when it hits the '\0' (the null terminator that
+ * marks the end of every string in C).
  * ------------------------------------------------------------------------- */
-
 void uart_puts(const char *s)
-
 {
-
     while (*s) {
-
         uart_putc(*s);
-
         s++;
-
     }
-
 }
 
 /* -------------------------------------------------------------------------
-
- * uart_put_hex - Imprime un numero en hexadecimal
-
+ * uart_put_hex - Print a number in hexadecimal
  *
-
- * Esto nos va a servir mucho para debug. Cuando queramos ver el valor
-
- * de un registro o una direccion de memoria, podemos llamar esta funcion
-
- * y nos lo muestra en formato 0x00000000DEADBEEF por ejemplo.
-
+ * This is going to be really handy for debugging. When we want to see
+ * the value of a register or a memory address, we can call this and it
+ * shows something like 0x00000000DEADBEEF for example.
  *
-
- * Como funciona: agarra el numero de 64 bits y lo va convirtiendo
-
- * de a 4 bits (un nibble), empezando por los bits mas altos.
-
- * Cada nibble se convierte en un caracter hex (0-9 o a-f).
-
+ * How it works: it takes the 64-bit number and converts it 4 bits at a
+ * time (one nibble), starting from the highest bits. Each nibble becomes
+ * a hex character (0-9 or a-f).
  *
-
- * El shift y la mascara:
-
- *   - (value >> 60) nos da los 4 bits mas altos
-
- *   - & 0xf nos deja solo esos 4 bits
-
- *   - Despues bajamos a los siguientes 4 bits con >> 56, >> 52, etc.
-
+ * The shift and mask trick:
+ *   (value >> 60) gives us the top 4 bits
+ *   & 0xf keeps only those 4 bits
+ *   Then we move down to the next 4 bits with >> 56, >> 52, etc.
  * ------------------------------------------------------------------------- */
-
 void uart_put_hex(uint64_t value)
-
 {
-
-    /* Tabla para convertir un nibble (0-15) a su caracter hex */
-
+    /* lookup table to convert a nibble (0-15) to its hex character */
     const char hex_chars[] = "0123456789abcdef";
-
     int i;
 
     uart_puts("0x");
 
-    /* Recorremos los 16 nibbles del numero (64 bits / 4 bits = 16 nibbles) */
-
+    /* walk through all 16 nibbles (64 bits / 4 bits per nibble = 16) */
     for (i = 60; i >= 0; i -= 4) {
-
         uart_putc(hex_chars[(value >> i) & 0xf]);
-
     }
-
 }
-

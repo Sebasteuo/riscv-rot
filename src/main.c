@@ -1,96 +1,51 @@
 /* ==========================================================================
-
- * main.c - Punto de entrada principal del firmware Root of Trust
-
+ * main.c - Main entry point for the Root of Trust firmware
  * ==========================================================================
-
  *
-
- * Aca arranca toda la logica del firmware despues de que start.S
-
- * prepara el stack y limpia el BSS.
-
+ * This is where start.S jumps to after setting up the stack and
+ * clearing BSS. It is the beginning of our C code.
  *
-
- * En la Fase 1 esto solo imprimia un mensaje para confirmar que el
-
- * arranque funcionaba. Ahora en la Fase 2 vamos a agregar la
-
- * configuracion de PMP para proteger zonas de memoria.
-
+ * In Phase 1 this just printed a message to confirm the boot worked.
+ * Now we are reorganizing things for Phase 2 where we will add PMP
+ * configuration, the trap handler, and the jump to U-mode.
  *
-
- * Por ahora el main sigue siendo simple, imprime el banner y confirma
-
- * que estamos corriendo en M-mode. En los proximos pasos vamos a ir
-
- * agregando la logica de PMP, el salto a U-mode y el manejo de traps.
-
+ * For now main is still simple. It prints the firmware banner and
+ * confirms we are running in M-mode. The PMP logic will be added
+ * in the next steps.
  *
-
- * Autor: Sebastian Alba
-
- * Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
-
+ * Author: Sebastian Alba
+ * Project: Root of Trust Firmware for RISC-V with PMP isolation
  * ========================================================================== */
 
 #include <stdint.h>
-
 #include "uart.h"
 
 /* -------------------------------------------------------------------------
-
- * main - Funcion principal del firmware
-
+ * main - Firmware entry point
  *
-
- * Lo que hace por ahora:
-
- *   1. Imprime el banner del firmware
-
- *   2. Confirma que el UART funciona
-
- *   3. Se queda en un loop infinito esperando
-
+ * What it does right now:
+ *   1. Prints the firmware banner
+ *   2. Confirms that UART works
+ *   3. Sits in an infinite loop waiting
  *
-
- * En los siguientes pasos de la Fase 2, aca vamos a:
-
- *   - Configurar las regiones PMP
-
- *   - Instalar el trap handler
-
- *   - Saltar a U-mode
-
- *   - Probar que PMP bloquea accesos no autorizados
-
+ * In the next steps of Phase 2 we will:
+ *   - Configure PMP regions
+ *   - Install the trap handler
+ *   - Jump to U-mode
+ *   - Test that PMP blocks unauthorized access
  * ------------------------------------------------------------------------- */
-
 void main(void)
-
 {
-
     uart_puts("=================================\n");
-
     uart_puts("  RISC-V Root of Trust Firmware\n");
-
     uart_puts("  Booting in M-mode...\n");
-
     uart_puts("=================================\n");
-
     uart_puts("[OK] UART initialized\n");
-
     uart_puts("[OK] Firmware running on QEMU virt (rv64)\n");
-
     uart_puts("\nHello from bare-metal RISC-V!\n");
 
-    /* Loop infinito, el firmware se queda aca esperando */
-
+    /* infinite loop, firmware stays here waiting */
     while (1) {
-
         asm volatile("wfi");
-
     }
-
 }
-

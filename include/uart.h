@@ -1,18 +1,18 @@
 /* ==========================================================================
- * uart.h - Funciones para imprimir por el puerto serial
+ * uart.h - Functions for printing through the serial port
  * ==========================================================================
  *
- * Como en bare-metal no tenemos printf ni nada parecido (no hay sistema
- * operativo que nos de esas funciones), nos toca escribir nosotros mismos
- * las funciones para mandar texto al puerto serial (UART).
+ * Since we are running bare-metal, there is no printf or anything like
+ * that available (there is no operating system to give us those things).
+ * So we write our own functions to send text to the serial port (UART).
  *
- * La idea es simple: el UART esta mapeado en una direccion de memoria
- * fija (0x10000000 en la maquina virt de QEMU). Si escribimos un byte
- * ahi, QEMU lo muestra como un caracter en la terminal. Con eso nos
- * alcanza para imprimir mensajes de debug y ver que esta pasando.
+ * The idea is pretty simple. The UART is mapped to a fixed memory
+ * address (0x10000000 on the QEMU virt machine). If we write a byte
+ * there, QEMU shows it as a character in the terminal. That is all
+ * we need to print debug messages and see what is going on.
  *
- * Autor: Sebastian Alba
- * Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
+ * Author: Sebastian Alba
+ * Project: Root of Trust Firmware for RISC-V with PMP isolation
  * ========================================================================== */
 
 #ifndef UART_H
@@ -21,21 +21,22 @@
 #include <stdint.h>
 
 /*
- * Direccion del UART0 en la maquina virt de QEMU.
- * No es un numero random, viene de como QEMU define su mapa de memoria.
+ * UART0 address on the QEMU virt machine.
+ * This is not a random number, it comes from how QEMU defines
+ * its memory map for the virt platform.
  */
 #define UART0_BASE 0x10000000
 
-/* Manda un solo caracter al UART */
+/* Send a single character to the UART */
 void uart_putc(char c);
 
-/* Manda un string completo al UART, caracter por caracter */
+/* Send a full null-terminated string to the UART, character by character */
 void uart_puts(const char *s);
 
 /*
- * Imprime un numero en formato hexadecimal.
- * Esto es muy util para debug, por ejemplo para mostrar direcciones
- * de memoria o valores de registros y poder verificar que estan bien
+ * Print a number in hexadecimal format.
+ * Super useful for debugging, for example to show memory addresses
+ * or register values and check if they look right
  */
 void uart_put_hex(uint64_t value);
 

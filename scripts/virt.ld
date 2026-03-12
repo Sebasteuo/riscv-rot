@@ -1,53 +1,49 @@
 /* ==========================================================================
- * virt.ld - Linker script para la maquina virt de QEMU (RISC-V 64 bits)
+ * virt.ld - Linker script for the QEMU virt machine (RISC-V 64-bit)
  * ==========================================================================
  *
- * Que es un linker script?
- * ------------------------
- * Cuando compilamos codigo en C o ensamblador, el compilador genera
- * archivos objeto (.o) con el codigo de maquina. Pero esos archivos
- * todavia no saben EN QUE DIRECCION de memoria van a vivir.
+ * What is a linker script?
+ * When we compile C or assembly code, the compiler generates object
+ * files (.o) with machine code. But those files do not know WHERE in
+ * memory they are supposed to live.
  *
- * El linker script es el archivo que le dice al linker (la herramienta
- * que junta todo) exactamente donde poner cada pedazo del programa
- * en la memoria. Esto es critico en bare-metal porque no hay sistema
- * operativo que se encargue de cargar el programa en memoria.
+ * The linker script tells the linker (the tool that puts everything
+ * together) exactly where to place each piece of the program in memory.
+ * This is critical in bare-metal because there is no operating system
+ * to load the program for us.
  *
- * Por que la direccion 0x80000000?
- * --------------------------------
- * En la maquina "virt" de QEMU para RISC-V, la memoria RAM empieza
- * en la direccion 0x80000000. Esto no es algo que decidimos nosotros,
- * viene definido por el hardware (o en este caso, por la especificacion
- * de la maquina virtual). Cuando QEMU arranca con -bios none -kernel,
- * salta directamente a 0x80000000, asi que nuestro codigo tiene que
- * estar ahi.
+ * Why 0x80000000?
+ * On the QEMU virt machine for RISC-V, RAM starts at address
+ * 0x80000000. We did not pick this, it is defined by the hardware
+ * (or in this case, by the QEMU virtual machine spec). When QEMU
+ * boots with -bios none -kernel, it jumps straight to 0x80000000,
+ * so our code has to be sitting right there.
  *
- * Que secciones tiene un programa?
- * --------------------------------
- *   .text     = El codigo ejecutable (las instrucciones del procesador)
- *   .rodata   = Datos de solo lectura (constantes, strings)
- *   .data     = Variables globales inicializadas (ej: int x = 5)
- *   .bss      = Variables globales sin inicializar (ej: int x;)
- *   .stack    = Espacio reservado para el stack
- *   .got      = Global Offset Table, tabla que usa el compilador
- *               para resolver direcciones de simbolos
+ * What sections does a program have?
+ *   .text     executable code (the processor instructions)
+ *   .rodata   read-only data (constants, strings)
+ *   .data     initialized global variables (e.g. int x = 5)
+ *   .bss      uninitialized global variables (e.g. int x;)
+ *   .stack    reserved space for the stack
+ *   .got      Global Offset Table, used by the compiler internally
+ *             to resolve symbol addresses
  *
- * Al final descartamos secciones que no necesitamos en bare-metal
- * como .dynamic, .interp, etc. Esas son para ejecutables que corren
- * sobre un sistema operativo con linker dinamico.
+ * At the end we discard sections we do not need in bare-metal like
+ * .dynamic, .interp, etc. Those are meant for executables that run
+ * on top of an OS with a dynamic linker.
  *
- * Autor: Sebastian Alba
- * Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
+ * Author: Sebastian Alba
+ * Project: Root of Trust Firmware for RISC-V with PMP isolation
  * ========================================================================== */
 
 OUTPUT_ARCH(riscv)
 ENTRY(_start)
 
 /*
- * Definimos la memoria disponible.
- * ORIGIN = donde empieza la RAM
- * LENGTH = cuanta RAM tenemos (128 MB es lo que le pasamos a QEMU con -m 128M)
- * rwx = esta memoria permite lectura, escritura y ejecucion
+ * Define the available memory.
+ * ORIGIN is where RAM starts
+ * LENGTH is how much RAM we have (128 MB, same as what we pass to QEMU with -m 128M)
+ * rwx means this memory allows reading, writing and execution
  */
 MEMORY
 {
@@ -56,13 +52,13 @@ MEMORY
 
 SECTIONS
 {
-    /* Forzamos que todo empiece en 0x80000000 */
+    /* Force everything to start at 0x80000000 */
     . = 0x80000000;
 
     /*
-     * Seccion .text - Codigo ejecutable
-     * .text.init va primero porque ahi esta _start (el punto de entrada)
-     * Despues va el resto del codigo (.text*)
+     * .text section, this is where executable code goes
+     * .text.init goes first because that is where _start lives (our entry point)
+     * Then the rest of the code follows (.text*)
      */
     .text : {
         *(.text.init)
@@ -70,37 +66,37 @@ SECTIONS
     } > RAM
 
     /*
-     * Seccion .rodata - Datos de solo lectura
-     * Aca van los strings como "Hello from bare-metal RISC-V!"
-     * y cualquier constante que definamos
+     * .rodata section, read-only data
+     * This is where strings like "Hello from bare-metal RISC-V!" end up,
+     * along with any constants we define
      */
     .rodata : {
         *(.rodata*)
     } > RAM
 
     /*
-     * Seccion .data - Variables globales inicializadas
-     * Por ahora no tenemos ninguna, pero cuando empecemos
-     * a guardar configuraciones van a ir aca
+     * .data section, initialized global variables
+     * We do not have any right now but when we start storing
+     * configuration values they will go here
      */
     .data : {
         *(.data*)
     } > RAM
 
     /*
-     * Seccion .got - Global Offset Table
-     * El compilador la usa internamente para resolver direcciones
-     * cuando usamos -mcmodel=medany. Necesitamos incluirla para
-     * que el linker no se queje
+     * .got section, Global Offset Table
+     * The compiler uses this internally to resolve addresses when we
+     * compile with -mcmodel=medany. We need to include it or the
+     * linker complains
      */
     .got : {
         *(.got*)
     } > RAM
 
     /*
-     * Seccion .bss - Variables globales sin inicializar
-     * __bss_start y __bss_end son simbolos que start.S usa para
-     * saber que zona de memoria tiene que llenar con ceros
+     * .bss section, uninitialized global variables
+     * __bss_start and __bss_end are symbols that start.S uses to know
+     * which memory area needs to be filled with zeros
      */
     .bss : {
         __bss_start = .;
@@ -110,12 +106,12 @@ SECTIONS
     } > RAM
 
     /*
-     * Seccion .stack - Espacio para el stack
-     * NOLOAD significa que no ocupa espacio en el archivo ELF,
-     * solo reserva espacio en memoria
-     * 0x10000 = 64 KB de stack, mas que suficiente para nuestro firmware
-     * __stack_top queda apuntando al tope, que es donde start.S
-     * inicializa el stack pointer
+     * .stack section, reserved space for the stack
+     * NOLOAD means it does not take up space in the ELF file,
+     * it only reserves space in memory
+     * 0x10000 = 64 KB of stack, more than enough for our firmware
+     * __stack_top ends up pointing to the top, which is where
+     * start.S initializes the stack pointer
      */
     .stack (NOLOAD) : {
         . = . + 0x10000;
@@ -123,9 +119,9 @@ SECTIONS
     } > RAM
 
     /*
-     * Secciones que descartamos
-     * Estas secciones son para ejecutables que corren sobre un OS
-     * con linker dinamico. En bare-metal no las necesitamos para nada
+     * Sections we throw away
+     * These are meant for executables that run on top of an OS
+     * with a dynamic linker. In bare-metal we have no use for them
      */
     /DISCARD/ : {
         *(.eh_frame*)
