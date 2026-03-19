@@ -2,9 +2,7 @@
  * main.c - Main entry point for the Root of Trust firmware
  * ==========================================================================
  *
- * Phase 3: now using the Secure Storage MMIO device in QEMU instead
- * of writing secrets directly to RAM. The ss_write_key/ss_read_key
- * functions talk to the device at 0x10200000 through registers.
+ * Phase 5: Shared memory zone for host-to-core communication.
  *
  * Author: Sebastian Alba
  * Project: Root of Trust Firmware for RISC-V with PMP isolation
@@ -15,86 +13,113 @@
 #include "pmp.h"
 #include "trap.h"
 #include "secure_storage.h"
+#include "sha256.h"
+#include "pcr.h"
+#include "keygen.h"
 
 extern void switch_to_user(void);
 
+extern uint8_t __text_start[];
+extern uint8_t __text_end[];
+extern uint8_t __rodata_start[];
+extern uint8_t __rodata_end[];
+
+/*
+ * This flag is set by the trap handler when U-mode does the final
+ * ecall with no command. main() polls it after switch_to_user().
+ * It is a simple way to know when U-mode is done without complex
+ * control flow tricks.
+ */
+volatile int umode_done = 0;
+
+void post_umode_report(void)
+{
+    uint8_t read_buf[SHA256_DIGEST_SIZE];
+
+    uart_puts("\n==========================================\n");
+    uart_puts("  Back in M-mode - Final system state\n");
+    uart_puts("==========================================\n");
+
+    /* store the final PCR2 value (extended by host measurements) */
+    pcr_read(2, read_buf);
+    ss_write_key(KEY_ID_PCR2, read_buf, SHA256_DIGEST_SIZE);
+
+    uart_puts("\n[MAIN] --- Final PCR state ---\n");
+    uart_puts("[MAIN] PCR0: firmware .text measurement\n");
+    uart_puts("[MAIN] PCR1: firmware .rodata measurement\n");
+    uart_puts("[MAIN] PCR2: host binary measurements (from U-mode requests)\n");
+    pcr_dump();
+
+    uart_puts("\n[MAIN] --- Final Secure Storage state ---\n");
+    ss_dump();
+
+    uart_puts("\n==========================================\n");
+    uart_puts("  ALL TESTS PASSED\n");
+    uart_puts("  Root of Trust operational\n");
+    uart_puts("==========================================\n");
+
+    while (1) {
+        asm volatile("wfi");
+    }
+}
+
 void main(void)
 {
-    uint8_t test_key[32] = {
-        0xDE, 0xAD, 0xBE, 0xEF, 0xCA, 0xFE, 0xBA, 0xBE,
-        0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
-        0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10,
-        0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11
-    };
-
-    uint8_t srk_data[16] = {
-        0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88,
-        0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00
-    };
-
-    uint8_t read_buf[64];
+    uint8_t read_buf[SHA256_DIGEST_SIZE];
     uint32_t read_size = 0;
     int i;
 
-    uart_puts("=================================\n");
+    uart_puts("==========================================\n");
     uart_puts("  RISC-V Root of Trust Firmware\n");
+    uart_puts("  Phase 5 - Shared Memory Interface\n");
     uart_puts("  Booting in M-mode...\n");
-    uart_puts("=================================\n");
+    uart_puts("==========================================\n");
     uart_puts("[OK] UART initialized\n");
 
-    /* trap handler first so we catch any faults */
+    /* Step 1: install trap handler */
     trap_install();
 
-    /* lock down secret RAM and Secure Storage device with PMP */
+    /* Step 2: configure PMP (5 regions) */
     pmp_setup();
 
-    /* initialize the Secure Storage MMIO device */
+    /* Step 3: initialize Secure Storage MMIO device */
     ss_init();
 
-    /* --- test the Secure Storage device --- */
-    uart_puts("\n[MAIN] --- Secure Storage MMIO test ---\n");
+    /* Step 4: initialize PCRs */
+    pcr_init();
 
-    /* write a 256-bit test key to the EK slot */
-    uart_puts("[MAIN] Writing 256-bit test key to EK slot...\n");
-    ss_write_key(KEY_ID_EK, test_key, 32);
+    /* Step 5: measure firmware integrity */
+    uart_puts("\n[MAIN] --- Firmware integrity measurement ---\n");
 
-    /* read it back to verify the round trip works */
-    uart_puts("[MAIN] Reading back from EK slot...\n");
-    if (ss_read_key(KEY_ID_EK, read_buf, &read_size) == 0) {
-        uart_puts("[MAIN] Got ");
-        uart_put_hex(read_size);
-        uart_puts(" bytes: ");
-        for (i = 0; i < (int)read_size && i < 8; i++) {
-            uart_put_hex(read_buf[i]);
-            uart_puts(" ");
-        }
-        uart_puts("...\n");
+    uart_puts("[MAIN] Measuring .text section (code)...\n");
+    pcr_measure_and_extend(0, __text_start,
+        (uint32_t)((uintptr_t)__text_end - (uintptr_t)__text_start));
 
-        /* verify the data matches what we wrote */
-        int match = 1;
-        for (i = 0; i < (int)read_size; i++) {
-            if (read_buf[i] != test_key[i]) {
-                match = 0;
-                break;
-            }
-        }
-        if (match) {
-            uart_puts("[MAIN] Data verification PASSED, read matches write\n");
-        } else {
-            uart_puts("[MAIN] Data verification FAILED!\n");
-        }
-    }
+    uart_puts("[MAIN] Measuring .rodata section (constants)...\n");
+    pcr_measure_and_extend(1, __rodata_start,
+        (uint32_t)((uintptr_t)__rodata_end - (uintptr_t)__rodata_start));
 
-    /* write a second key to the SRK slot */
-    uart_puts("[MAIN] Writing 128-bit test key to SRK slot...\n");
-    ss_write_key(KEY_ID_SRK, srk_data, 16);
+    uart_puts("[MAIN] PCR0 = code, PCR1 = data, PCR2 = host (empty until U-mode)\n");
+    pcr_dump();
 
-    /* dump all slots */
-    ss_dump();
+    /* Step 6: derive and store keys */
+    uart_puts("\n[MAIN] --- Key generation ---\n");
+    keygen_init();
 
-    uart_puts("\n[MAIN] --- Secure Storage MMIO test complete ---\n");
-    uart_puts("[OK] All M-mode setup complete\n\n");
+    /* Step 7: store PCR snapshots */
+    pcr_read(0, read_buf);
+    ss_write_key(KEY_ID_PCR0, read_buf, SHA256_DIGEST_SIZE);
+    pcr_read(1, read_buf);
+    ss_write_key(KEY_ID_PCR1, read_buf, SHA256_DIGEST_SIZE);
 
-    /* drop to U-mode, PMP guards both the RAM and the MMIO device */
+    uart_puts("\n[OK] M-mode setup complete. Dropping to U-mode.\n");
+    uart_puts("[OK] U-mode will use shared memory to request measurements.\n\n");
+
+    /* Step 8: drop to U-mode */
     switch_to_user();
+
+    /* we should not reach here normally, but just in case */
+    while (1) {
+        asm volatile("wfi");
+    }
 }

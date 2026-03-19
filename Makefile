@@ -22,7 +22,7 @@ QEMU = $(HOME)/qemu-ccore/build/qemu-system-riscv64
 CFLAGS = -march=rv64g -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -g -O0 -static -mcmodel=medany -Iinclude
 LDFLAGS = -T scripts/virt.ld -nostdlib -static -Wl,--no-dynamic-linker
 
-SRCS_C = src/main.c src/uart.c src/pmp.c src/trap.c src/user.c src/switch.c src/secure_storage.c
+SRCS_C = src/main.c src/uart.c src/pmp.c src/trap.c src/user.c src/switch.c src/secure_storage.c lib/sha256.c src/pcr.c src/keygen.c
 SRCS_S = src/start.S src/trap_entry.S
 TARGET = firmware
 
