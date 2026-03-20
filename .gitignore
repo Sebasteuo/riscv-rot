@@ -1,5 +1,4 @@
-*.elf
-*.dump
+firmware.elf
+firmware.dump
 *.o
-*.bin
-/tmp/
+lib/mbedtls/

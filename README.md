@@ -43,28 +43,26 @@ make clean && make && make run
 ```
 
 ## Project structure
-riscv-rot/
-├── src/
-│   ├── start.S              Bootstrap (asm): stack, BSS, jump to main
-│   ├── main.c               Orchestrates all setup steps
-│   ├── uart.c               Serial output via MMIO
-│   ├── pmp.c                Configures 5 PMP regions
-│   ├── trap.c               Handles PMP faults and ecall requests
-│   ├── trap_entry.S         Asm trampoline: save regs, call C, restore, mret
-│   ├── switch.c             M-mode to U-mode transition (mret trick)
-│   ├── user.c               U-mode tests and shared memory client
-│   ├── secure_storage.c     Talks to MMIO device via registers
-│   ├── pcr.c                PCR extend operations
-│   └── keygen.c             HMAC-SHA256 KDF for key derivation
-├── include/                 Header files for all modules
-├── lib/
-│   └── sha256.c             Standalone SHA-256 (FIPS 180-4)
-├── scripts/
-│   └── virt.ld              Linker script with section symbols
-├── docs/
-│   └── architecture.png     Architecture diagram
-├── Makefile
-└── Dockerfile
+
+| Path | Description |
+|------|-------------|
+| `src/start.S` | Bootstrap in assembly: stack, BSS, jump to main |
+| `src/main.c` | Orchestrates all setup steps |
+| `src/uart.c` | Serial output via MMIO |
+| `src/pmp.c` | Configures 5 PMP regions |
+| `src/trap.c` | Handles PMP faults and ecall requests |
+| `src/trap_entry.S` | Asm trampoline: save regs, call C handler, restore, mret |
+| `src/switch.c` | M-mode to U-mode transition using mret |
+| `src/user.c` | U-mode tests and shared memory client |
+| `src/secure_storage.c` | Talks to MMIO device via registers |
+| `src/pcr.c` | PCR extend operations |
+| `src/keygen.c` | HMAC-SHA256 KDF for key derivation |
+| `include/` | Header files for all modules |
+| `lib/sha256.c` | Standalone SHA-256 (FIPS 180-4) |
+| `scripts/virt.ld` | Linker script with section symbols |
+| `docs/architecture.png` | Architecture diagram |
+| `Makefile` | Build rules for cross-compilation and QEMU |
+| `Dockerfile` | Container build for reproducible environment |
 
 ## Memory map
 
