@@ -1,48 +1,55 @@
 # ==========================================================================
-# Dockerfile - Entorno reproducible para el firmware Root of Trust
+# Dockerfile - Reproducible build environment for the RoT firmware
 # ==========================================================================
 #
-# Este Dockerfile crea un container con todo lo necesario para compilar
-# y ejecutar el firmware sin tener que instalar nada manualmente.
-# Cualquiera que tenga Docker puede clonar el repo, hacer docker build
-# y docker run, y ya tiene todo listo.
+# This container has everything needed to build and run the project:
+#   - RISC-V cross-compiler (gcc)
+#   - Our custom QEMU with the Secure Storage MMIO device
 #
-# Que incluye:
-#   - QEMU para simular el procesador RISC-V de 64 bits
-#   - Toolchain de cross-compilacion (gcc para RISC-V)
-#   - make, git y herramientas basicas
-#
-# Como usarlo:
+# Usage:
 #   docker build -t riscv-rot .
-#   docker run -it riscv-rot
-#   make run
+#   docker run --rm riscv-rot              (builds and runs the firmware)
+#   docker run --rm riscv-rot make clean   (just clean)
 #
-# Autor: Sebastian Alba
-# Proyecto: Firmware Root of Trust para RISC-V con aislamiento PMP
+# Author: Sebastian Alba
+# Project: Root of Trust Firmware for RISC-V with PMP isolation
 # ==========================================================================
 
 FROM ubuntu:24.04
 
-# Evitar que apt pregunte cosas durante la instalacion
+# avoid interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Instalar todo lo que necesitamos
+# install build tools and QEMU build dependencies
 RUN apt-get update && apt-get install -y \
-    qemu-system-misc \
     gcc-riscv64-linux-gnu \
     binutils-riscv64-linux-gnu \
     make \
     git \
+    ninja-build \
+    libglib2.0-dev \
+    libpixman-1-dev \
+    libslirp-dev \
+    python3 \
+    python3-venv \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# Crear directorio de trabajo
-WORKDIR /workspace
+# copy our firmware source
+WORKDIR /root/riscv-rot
+COPY include/ include/
+COPY src/ src/
+COPY lib/ lib/
+COPY scripts/ scripts/
+COPY Makefile .
 
-# Copiar todo el proyecto al container
-COPY . .
+# clone and build our custom QEMU with Secure Storage device
+# We clone from GitLab SECCE group
+RUN git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git /root/qemu-ccore && \
+    cd /root/qemu-ccore && \
+    ./configure --target-list=riscv64-softmmu --prefix=/opt/qemu-ccore && \
+    cd build && ninja -j$(nproc) && \
+    cd /root/riscv-rot
 
-# Compilar el firmware al construir la imagen
-RUN make clean && make
-
-# Cuando el container arranque, abrir un shell listo para trabajar
-CMD ["/bin/bash"]
+# default: build firmware and run it
+CMD ["sh", "-c", "make clean && make && make run"]

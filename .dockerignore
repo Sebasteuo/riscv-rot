@@ -1,4 +1,4 @@
-*.elf
-*.dump
-*.o
 .git
+firmware.elf
+firmware.dump
+*.o
