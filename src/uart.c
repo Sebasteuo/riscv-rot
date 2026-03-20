@@ -71,14 +71,17 @@ void uart_puts(const char *s)
  * ------------------------------------------------------------------------- */
 void uart_put_hex(uint64_t value)
 {
-    /* lookup table to convert a nibble (0-15) to its hex character */
     const char hex_chars[] = "0123456789abcdef";
     int i;
+    int started = 0;
 
     uart_puts("0x");
 
-    /* walk through all 16 nibbles (64 bits / 4 bits per nibble = 16) */
     for (i = 60; i >= 0; i -= 4) {
-        uart_putc(hex_chars[(value >> i) & 0xf]);
+        int nibble = (value >> i) & 0xf;
+        if (nibble != 0) started = 1;
+        if (started || i == 0) {
+            uart_putc(hex_chars[nibble]);
+        }
     }
 }
