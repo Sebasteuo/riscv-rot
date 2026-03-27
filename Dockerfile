@@ -4,12 +4,14 @@
 #
 # This container has everything needed to build and run the project:
 #   - RISC-V cross-compiler (gcc)
+#   - Python 3 for the attestation tools
 #   - Our custom QEMU with the Secure Storage MMIO device
 #
 # Usage:
 #   docker build -t riscv-rot .
-#   docker run --rm riscv-rot              (builds and runs the firmware)
-#   docker run --rm riscv-rot make clean   (just clean)
+#   docker run --rm -it riscv-rot                    # build and run firmware
+#   docker run --rm -it riscv-rot make clean         # just clean
+#   docker run --rm -it riscv-rot python3 tools/verify_quote.py --demo
 #
 # Author: Sebastian Alba
 # Project: Root of Trust Firmware for RISC-V with PMP isolation
@@ -17,10 +19,9 @@
 
 FROM ubuntu:24.04
 
-# avoid interactive prompts during apt install
 ENV DEBIAN_FRONTEND=noninteractive
 
-# install build tools and QEMU build dependencies
+# install build tools, Python, and QEMU build dependencies
 RUN apt-get update && apt-get install -y \
     gcc-riscv64-linux-gnu \
     binutils-riscv64-linux-gnu \
@@ -35,21 +36,22 @@ RUN apt-get update && apt-get install -y \
     pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
-# copy our firmware source
+# clone and build our custom QEMU with Secure Storage device
+RUN git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git /root/qemu-ccore && \
+    cd /root/qemu-ccore && \
+    ./configure --target-list=riscv64-softmmu --prefix=/opt/qemu-ccore && \
+    cd build && ninja -j$(nproc)
+
+# copy firmware source into the container
 WORKDIR /root/riscv-rot
 COPY include/ include/
 COPY src/ src/
 COPY lib/ lib/
 COPY scripts/ scripts/
+COPY tools/ tools/
+COPY docs/ docs/
 COPY Makefile .
+COPY README.md .
 
-# clone and build our custom QEMU with Secure Storage device
-# We clone from GitLab SECCE group
-RUN git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git /root/qemu-ccore && \
-    cd /root/qemu-ccore && \
-    ./configure --target-list=riscv64-softmmu --prefix=/opt/qemu-ccore && \
-    cd build && ninja -j$(nproc) && \
-    cd /root/riscv-rot
-
-# default: build firmware and run it
+# default: build and run the firmware
 CMD ["sh", "-c", "make clean && make && make run"]
