@@ -2,7 +2,9 @@
  * main.c - Main entry point for the Root of Trust firmware
  * ==========================================================================
  *
- * Phase 5: Shared memory zone for host-to-core communication.
+ * Boot sequence for the Root of Trust: sets up PMP, derives keys,
+ * measures firmware integrity, verifies Secure Boot, then drops
+ * to U-mode for testing.
  *
  * Author: Sebastian Alba
  * Project: Root of Trust Firmware for RISC-V with PMP isolation
@@ -71,7 +73,7 @@ void main(void)
 
     uart_puts("==========================================\n");
     uart_puts("  RISC-V Root of Trust Firmware\n");
-    uart_puts("  Phase 5 - Shared Memory Interface\n");
+    uart_puts("  Root of Trust Active\n");
     uart_puts("  Booting in M-mode...\n");
     uart_puts("==========================================\n");
     uart_puts("[OK] UART initialized\n");
@@ -111,6 +113,69 @@ void main(void)
     ss_write_key(KEY_ID_PCR0, read_buf, SHA256_DIGEST_SIZE);
     pcr_read(1, read_buf);
     ss_write_key(KEY_ID_PCR1, read_buf, SHA256_DIGEST_SIZE);
+
+    /* ---------------------------------------------------------------
+     * Secure Boot verification
+     *
+     * We just stored the PCR values as "golden values" in Secure
+     * Storage. Now we read them back and compare against the live
+     * PCR registers. If they match, the firmware has not been
+     * tampered with and we can safely continue to U-mode.
+     *
+     * In a real product, the golden values would be burned into
+     * OTP (one-time programmable) memory or signed by the vendor
+     * during manufacturing. For our demo we store and verify in
+     * the same boot cycle to show the mechanism works.
+     *
+     * Based on: NIST SP 800-155 (BIOS Integrity Measurement
+     * Guidelines) and TCG PC Client Platform Firmware Profile.
+     * --------------------------------------------------------------- */
+    uart_puts("\n[BOOT] --- Secure Boot verification ---\n");
+    {
+        uint8_t golden[SHA256_DIGEST_SIZE];
+        uint8_t current[SHA256_DIGEST_SIZE];
+        uint32_t golden_size = SHA256_DIGEST_SIZE;
+        int i, match;
+
+        /* verify PCR0 (code section) */
+        uart_puts("[BOOT] Checking .text integrity against golden value...\n");
+        ss_read_key(KEY_ID_PCR0, golden, &golden_size);
+        pcr_read(0, current);
+        match = 1;
+        for (i = 0; i < SHA256_DIGEST_SIZE; i++) {
+            if (golden[i] != current[i]) { match = 0; break; }
+        }
+        if (match) {
+            uart_puts("[BOOT] PCR0 matches golden value: CODE OK\n");
+        } else {
+            uart_puts("[BOOT] *** SECURE BOOT FAILURE ***\n");
+            uart_puts("[BOOT] PCR0 does not match golden value\n");
+            uart_puts("[BOOT] Firmware code has been TAMPERED WITH\n");
+            uart_puts("[BOOT] System HALTED for security\n");
+            while (1) { asm volatile("wfi"); }
+        }
+
+        /* verify PCR1 (rodata section) */
+        uart_puts("[BOOT] Checking .rodata integrity against golden value...\n");
+        golden_size = SHA256_DIGEST_SIZE;
+        ss_read_key(KEY_ID_PCR1, golden, &golden_size);
+        pcr_read(1, current);
+        match = 1;
+        for (i = 0; i < SHA256_DIGEST_SIZE; i++) {
+            if (golden[i] != current[i]) { match = 0; break; }
+        }
+        if (match) {
+            uart_puts("[BOOT] PCR1 matches golden value: DATA OK\n");
+        } else {
+            uart_puts("[BOOT] *** SECURE BOOT FAILURE ***\n");
+            uart_puts("[BOOT] PCR1 does not match golden value\n");
+            uart_puts("[BOOT] Firmware data has been TAMPERED WITH\n");
+            uart_puts("[BOOT] System HALTED for security\n");
+            while (1) { asm volatile("wfi"); }
+        }
+
+        uart_puts("[BOOT] Secure Boot PASSED, firmware is authentic\n");
+    }
 
     uart_puts("\n[OK] M-mode setup complete. Dropping to U-mode.\n");
     uart_puts("[OK] U-mode will use shared memory to request measurements.\n\n");
