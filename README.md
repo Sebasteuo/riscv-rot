@@ -10,7 +10,7 @@ A bare-metal security firmware that emulates TPM 2.0 functions using RISC-V Phys
 
 ### Option 1: Docker (recommended, zero setup)
 ```bash
-git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
+git clone --recurse-submodules https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
 docker build -t riscv-rot .
 docker run --rm -it riscv-rot
 ```
@@ -26,7 +26,7 @@ cd ~/qemu-ccore && ./configure --target-list=riscv64-softmmu
 cd build && ninja -j$(nproc) && cd ~
 
 # Build and run the firmware
-git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
+git clone --recurse-submodules https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
 make && make run
 ```
 
