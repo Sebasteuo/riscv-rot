@@ -1,0 +1,3 @@
+[submodule "qemu-ccore"]
+	path = qemu-ccore
+	url = https://gitlab.com/secce/qemu-ccore.git
