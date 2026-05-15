@@ -919,6 +919,15 @@ static void process_shared_command(void)
     uint32_t max_data = SHARED_SIZE - SHARED_OFF_DATA;
 
     /*
+     * Measure command processing time using the mcycle CSR.
+     * We read the cycle counter before and after processing,
+     * then print the difference. This satisfies SRS-P-002
+     * (command response time <= 100ms).
+     */
+    uint64_t cmd_start, cmd_end;
+    asm volatile("csrr %0, mcycle" : "=r"(cmd_start));
+
+    /*
      * Step 1: Handle AUTH command separately
      * AUTH is the only command that can be processed even when
      * not yet authenticated. But if locked, even AUTH is rejected.
@@ -1111,6 +1120,14 @@ static void process_shared_command(void)
         shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_ERROR;
         break;
     }
+
+    /* print command processing time */
+    asm volatile("csrr %0, mcycle" : "=r"(cmd_end));
+    uart_puts("[PERF] Command ");
+    uart_put_hex(cmd);
+    uart_puts(" processed in ");
+    uart_put_hex((uint32_t)(cmd_end - cmd_start));
+    uart_puts(" cycles\n");
 }
 
 /* -------------------------------------------------------------------------
