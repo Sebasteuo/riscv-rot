@@ -2,3 +2,4 @@ firmware.elf
 firmware.dump
 *.o
 lib/mbedtls/
+secure_storage.bin

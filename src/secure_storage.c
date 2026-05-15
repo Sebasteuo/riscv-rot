@@ -67,10 +67,26 @@ void ss_init(void)
     uart_put_hex(SS_MMIO_BASE);
     uart_puts("\n");
 
-    /* erase every slot */
-    for (i = 0; i < SS_NUM_SLOTS; i++) {
-        ss_reg_write(SS_REG_SLOT_ID, i);
-        ss_reg_write(SS_REG_CMD, SS_CMD_ERASE);
+    /*
+     * Check how many slots already have data from a previous boot.
+     * If the QEMU device loaded a backing file, some slots will
+     * already be populated. We do NOT erase them because that would
+     * destroy persisted keys (SRS-D-001).
+     */
+    {
+        int populated = 0;
+        for (i = 0; i < SS_NUM_SLOTS; i++) {
+            ss_reg_write(SS_REG_SLOT_ID, i);
+            ss_reg_write(SS_REG_CMD, SS_CMD_CHECK);
+            if (ss_reg_read(SS_REG_STATUS) == SS_STATUS_HAS_DATA) {
+                populated++;
+            }
+        }
+        if (populated > 0) {
+            uart_puts("[SS] Found ");
+            uart_put_hex(populated);
+            uart_puts(" slots with persisted data\n");
+        }
     }
 
     uart_puts("[SS] ");

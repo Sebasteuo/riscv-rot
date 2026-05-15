@@ -199,31 +199,35 @@ void keygen_init(void)
 {
     uint8_t ek[SHA256_DIGEST_SIZE];
     uint8_t srk[SHA256_DIGEST_SIZE];
+    uint32_t read_size;
     int i;
 
-    uart_puts("[KEYGEN] Deriving keys from seeds...\n");
+    if (ss_key_exists(KEY_ID_EK)) {
+        uart_puts("[KEYGEN] EK found in Secure Storage (not first boot)\n");
+        read_size = SHA256_DIGEST_SIZE;
+        ss_read_key(KEY_ID_EK, ek, &read_size);
+        uart_puts("[KEYGEN] EK loaded: ");
+        for (i = 0; i < 8; i++) { uart_put_hex(ek[i]); uart_puts(" "); }
+        uart_puts("...\n");
+        read_size = SHA256_DIGEST_SIZE;
+        ss_read_key(KEY_ID_SRK, srk, &read_size);
+        uart_puts("[KEYGEN] SRK loaded: ");
+        for (i = 0; i < 8; i++) { uart_put_hex(srk[i]); uart_puts(" "); }
+        uart_puts("...\n");
+        uart_puts("[KEYGEN] Keys restored from persistent storage\n");
+        return;
+    }
 
-    /* derive the Endorsement Key */
+    uart_puts("[KEYGEN] First boot, deriving keys from seeds...\n");
     keygen_ek(endorsement_seed, ek);
     uart_puts("[KEYGEN] EK derived: ");
-    for (i = 0; i < 8; i++) {
-        uart_put_hex(ek[i]);
-        uart_puts(" ");
-    }
+    for (i = 0; i < 8; i++) { uart_put_hex(ek[i]); uart_puts(" "); }
     uart_puts("...\n");
-
-    /* derive the Storage Root Key */
     keygen_srk(storage_seed, srk);
     uart_puts("[KEYGEN] SRK derived: ");
-    for (i = 0; i < 8; i++) {
-        uart_put_hex(srk[i]);
-        uart_puts(" ");
-    }
+    for (i = 0; i < 8; i++) { uart_put_hex(srk[i]); uart_puts(" "); }
     uart_puts("...\n");
-
-    /* store both in the Secure Storage MMIO device */
     ss_write_key(KEY_ID_EK, ek, SHA256_DIGEST_SIZE);
     ss_write_key(KEY_ID_SRK, srk, SHA256_DIGEST_SIZE);
-
     uart_puts("[KEYGEN] Keys stored in Secure Storage\n");
 }
