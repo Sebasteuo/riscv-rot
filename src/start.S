@@ -90,7 +90,7 @@ _start:
      * In RISC-V the stack grows downward (from high addresses to low),
      * which is why we initialize it at the top.
      */
-    la sp, __stack_top
+    lla sp, __stack_top
 
     /*
      * BSS clearing
@@ -112,8 +112,8 @@ _start:
      * __bss_start and __bss_end are symbols that the linker script
      * defines automatically to mark where BSS begins and ends.
      */
-    la t0, __bss_start       /* t0 points to the beginning of BSS */
-    la t1, __bss_end         /* t1 points to the end of BSS */
+    lla t0, __bss_start       /* t0 points to the beginning of BSS */
+    lla t1, __bss_end         /* t1 points to the end of BSS */
 
 bss_clear:
     /* if t0 has reached t1 (or passed it), we are done cleaning */
@@ -131,6 +131,20 @@ bss_clear:
     j bss_clear
 
 bss_done:
+    /*
+     * Clear the .secret section (M-mode protected state at 0x80100000).
+     * Same idea as the BSS clear: these variables must start at zero,
+     * and bare-metal RAM is not guaranteed to be zero.
+     */
+    lla t0, __secret_start
+    lla t1, __secret_end
+secret_clear:
+    bge t0, t1, secret_done
+    sd zero, 0(t0)
+    addi t0, t0, 8
+    j secret_clear
+secret_done:
+
     /*
      * jal = Jump And Link
      * It does two things at once:

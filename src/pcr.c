@@ -21,9 +21,10 @@
 
 #include "pcr.h"
 #include "uart.h"
+#include "secret.h"
 
 /* the PCR bank: 3 registers of 32 bytes each */
-static uint8_t pcr_bank[PCR_COUNT][SHA256_DIGEST_SIZE];
+static uint8_t pcr_bank[PCR_COUNT][SHA256_DIGEST_SIZE] __secret;
 
 /* -------------------------------------------------------------------------
  * pcr_init - reset all PCRs to zero

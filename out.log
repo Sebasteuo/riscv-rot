@@ -1,0 +1,1185 @@
+==========================================
+  RISC-V Root of Trust Firmware
+  Root of Trust Active
+  Booting in M-mode...
+==========================================
+[OK] UART initialized
+[TRAP] Trap handler installed at 0x80000060
+[PMP] Configuring memory protection...
+[PMP] Region 0 (secret RAM):     addr=0x200401ff NO access
+[PMP] Region 1 (Secure Storage): addr=0x40801ff NO access
+[PMP] Region 2 (UART):           addr=0x40001ff R+W
+[PMP] Region 3 (Shared memory):  addr=0x200c01ff R+W (no exec)
+[PMP] Region 4 (everything else): full access
+[PMP] Memory protection configured successfully
+[SS] Initializing Secure Storage (MMIO backend)...
+[SS] Device address: 0x10200000
+[SS] 0x8 slots available, each up to 0x40 bytes
+[SS] Secure Storage ready
+[PCR] Initialized 0x3 PCR registers (all zeros)
+
+[MAIN] --- Firmware integrity measurement ---
+[MAIN] Measuring .text section (code)...
+[PCR] Measured 0xa3a4 bytes, hash = 0x2e0x910x310x1a...
+[MAIN] Measuring .rodata section (constants)...
+[PCR] Measured 0x35ec bytes, hash = 0x620x980x30x8c...
+[MAIN] PCR0 = code, PCR1 = data, PCR2 = host (empty until U-mode)
+[PCR] === PCR dump ===
+[PCR]  PCR0x0: 0xbd0xe80x8f0x390xdc0x1d0x4d0x92...
+[PCR]  PCR0x1: 0x210x840xea0xa10xc00x940x620x55...
+[PCR]  PCR0x2: 0x00x00x00x00x00x00x00x0...
+[PCR] === End dump ===
+
+[MAIN] --- Key generation ---
+[KEYGEN] First boot, deriving keys from seeds...
+[KEYGEN] EK derived: 0xff 0xd4 0x58 0x71 0x81 0x58 0x7c 0x57 ...
+[KEYGEN] SRK derived: 0xc7 0x56 0xda 0x32 0x52 0x6 0x72 0xa3 ...
+[SS] Key written to slot 0x0 (0x20 bytes)
+[SS] Key written to slot 0x1 (0x20 bytes)
+[KEYGEN] Keys stored in Secure Storage
+[SS] Key written to slot 0x2 (0x20 bytes)
+[SS] Key written to slot 0x3 (0x20 bytes)
+
+[BOOT] --- Secure Boot verification ---
+[BOOT] Checking .text integrity against golden value...
+[BOOT] PCR0 matches golden value: CODE OK
+[BOOT] Checking .rodata integrity against golden value...
+[BOOT] PCR1 matches golden value: DATA OK
+[BOOT] Secure Boot PASSED, firmware is authentic
+
+[PERF] --- Boot time measurement ---
+[PERF] Boot completed in 0x00x881979 cycles
+
+[OK] M-mode setup complete. Dropping to U-mode.
+[OK] U-mode will use shared memory to request measurements.
+
+[SWITCH] Preparing to jump to U-mode...
+[SWITCH] mstatus.MPP set to User mode (0)
+[SWITCH] mepc set to user_entry at 0x80003c54
+[SWITCH] U-mode stack at 0x8000ea10
+[SWITCH] Jumping to U-mode NOW!
+=========================================
+[USER] ================================
+[USER] Running in U-mode (unprivileged)
+
+[USER] Test 1: Attempting to READ the secret zone...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x5
+[TRAP] mepc   = 0x80003cc8
+[TRAP] mtval  = 0x80100000
+[TRAP] >> LOAD ACCESS FAULT
+[TRAP] >> U-mode tried to READ from a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Value we got: 0x80100000 (garbage, PMP blocked the real read)
+
+[USER] Test 2: Attempting to WRITE to the secret zone...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x7
+[TRAP] mepc   = 0x80003d0c
+[TRAP] mtval  = 0x80100000
+[TRAP] >> STORE ACCESS FAULT
+[TRAP] >> U-mode tried to WRITE to a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Write was blocked by PMP
+
+[USER] ================================
+[USER] Test 3: Try MEASURE without authenticating first
+[USER] (should be rejected with NO_AUTH status)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Status: 0x6 (NO_AUTH, correct! must authenticate first)
+
+[USER] ================================
+[USER] Test 4: Send wrong password 3 times to trigger lockout
+
+[USER] Attempt 1 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x1 / 0x3
+[DA] 0x2 attempts remaining before lockout
+[TRAP] ============================
+[USER] Status: 0x4
+
+[USER] Attempt 2 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x2 / 0x3
+[DA] 0x1 attempts remaining before lockout
+[TRAP] ============================
+[USER] Status: 0x4
+
+[USER] Attempt 3 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x3 / 0x3
+[DA] *** LOCKOUT ACTIVATED ***
+[DA] Too many failed attempts (0x3)
+[DA] System locked for 0x32 cycles
+[DA] All requests will be rejected until cooldown expires
+[TRAP] ============================
+[USER] Status: 0x3 (LOCKED! lockout activated after 3 failures)
+
+
+[USER] ================================
+[USER] Test 5: Try MEASURE while locked
+[USER] (should be rejected with LOCKED status)
+[DA] System is LOCKED (0x31 cycles remaining)
+[USER] Status: 0x3 (LOCKED, correct! system is in lockout)
+
+
+[USER] ================================
+[USER] Test 6: Waiting for lockout to expire...
+[USER] (sending dummy ecalls to tick down the counter)
+[DA] System is LOCKED (0x1 cycles remaining)
+[DA] Lockout period expired, system unlocked
+[DA] Failed attempts counter reset to 0
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003f7c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Lockout should be expired now
+
+[USER] ================================
+[USER] Test 7: Authenticate with correct password
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+[USER] Status: 0x5 (AUTH_OK! authenticated successfully)
+
+
+[USER] ================================
+[USER] Test 8: Start a session (get a temporary token)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1001
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] Status: 0x7 (SESSION_OK! got token: 0x1001)
+
+
+[USER] ================================
+[USER] Test 9: MEASURE with valid session token
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x36718 cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! measurement recorded in PCR2)
+
+
+[USER] ================================
+[USER] Test 10: Exhaust session TTL (use remaining calls)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1fa2f cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f989 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f5f4 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f4d1 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x20aa0 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xd
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1fcca cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xc
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1fdc4 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xb
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f13c cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xa
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f935 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x9
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f741 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x8
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x20c40 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x7
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x20088 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x6
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x209a6 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x5
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f359 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x4
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f2dd cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x3
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x207b2 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x2
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f577 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x1
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f330 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x0
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f2b2 cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session EXPIRED (TTL reached 0)
+[ACT] Must re-authenticate and start new session
+[TRAP] ============================
+[USER] Session expired after 0x14 additional calls
+[USER] Final status: 0x8 (SESSION_EXPIRED, correct!)
+
+
+[USER] ================================
+[USER] Test 11: Try MEASURE after session expired
+[USER] (should require re-authentication)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Status: 0x6 (NO_AUTH, correct! must re-authenticate)
+
+
+[USER] ================================
+[USER] Test 12: Re-authenticate + new session for NV counter tests
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+[USER] Auth status: 0x5
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1002
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] Session status: 0x7
+
+[USER] ================================
+[USER] Test 13: Read initial NV counter (should be 0)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[SS] ERROR: slot 0x5 is empty
+[NVC] Current counter value: 0x0
+[PERF] Command 0x5 processed in 0x1b86e cycles
+[TRAP] ============================
+[USER] Status: 0x0, counter = 0x0 (correct, starts at zero)
+
+
+[USER] ================================
+[USER] Test 14: Increment counter (expected version 0)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[SS] ERROR: slot 0x5 is empty
+[NVC] Increment request
+[NVC]   Current counter: 0x0
+[NVC]   Expected minimum version: 0x0
+[SS] Key written to slot 0x5 (0x4 bytes)
+[NVC] Counter incremented: 0x0 -> 0x1
+[PERF] Command 0x6 processed in 0x3e030 cycles
+[TRAP] ============================
+[USER] Status: 0x0, new counter = 0x1 (correct, 0 -> 1)
+
+
+[USER] ================================
+[USER] Test 15: Increment again (expected version 1)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[NVC] Increment request
+[NVC]   Current counter: 0x1
+[NVC]   Expected minimum version: 0x1
+[SS] Key written to slot 0x5 (0x4 bytes)
+[NVC] Counter incremented: 0x1 -> 0x2
+[PERF] Command 0x6 processed in 0x26136 cycles
+[TRAP] ============================
+[USER] Status: 0x0, new counter = 0x2 (correct, 1 -> 2)
+
+
+[USER] ================================
+[USER] Test 16: Try rollback (version 0 but counter is 2)
+[USER] (should be rejected with ROLLBACK status)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[NVC] Increment request
+[NVC]   Current counter: 0x2
+[NVC]   Expected minimum version: 0x0
+[NVC] *** ROLLBACK DETECTED ***
+[NVC] Expected version 0x0 is older than counter 0x2
+[NVC] Firmware downgrade REJECTED
+[PERF] Command 0x6 processed in 0x28a64 cycles
+[TRAP] ============================
+[USER] Status: 0xa (ROLLBACK detected, correct!)
+
+
+[USER] ================================
+[USER] Test 17: Read counter (should still be 2)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[NVC] Current counter value: 0x2
+[PERF] Command 0x5 processed in 0xab0f cycles
+[TRAP] ============================
+[USER] Status: 0x0, counter = 0x2 (correct, rollback did not change it)
+
+
+[USER] ================================
+[USER] Test 18: TPM2_Quote (sign PCRs with EK)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0x97 0x11 0x56 0x44 0xfc 0x3a 0xee 0xc1 ...
+[PERF] Command 0x2 processed in 0x3af33 cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! PCRs signed with EK)
+[USER] Signature: 0xbd 0xe8 0x8f 0x39 0xdc 0x1d 0x4d 0x92 ...
+
+
+[USER] ================================
+[USER] Test 19: Second quote (same PCRs = same signature)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xd
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0x97 0x11 0x56 0x44 0xfc 0x3a 0xee 0xc1 ...
+[PERF] Command 0x2 processed in 0x26bcb cycles
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xc
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0x97 0x11 0x56 0x44 0xfc 0x3a 0xee 0xc1 ...
+[PERF] Command 0x2 processed in 0x26b77 cycles
+[TRAP] ============================
+[USER] Signatures match: YES (correct, PCRs unchanged)
+
+
+[USER] ================================
+[USER] Test 20: Seal secret data to current PCR state
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xb
+[SEAL] Sealing 0x10 bytes with AES-128 encryption
+[SEAL] AES key derived from PCR policy
+[SEAL] Ciphertext: 0x71 0xf1 0x9b 0x7c ...
+[SS] Key written to slot 0x6 (0x10 bytes)
+[SS] Key written to slot 0x7 (0x20 bytes)
+[SEAL] Encrypted data in slot 0x6, policy in slot 0x7
+[PERF] Command 0x7 processed in 0x14efdd cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! data sealed to PCR state)
+
+
+[USER] ================================
+[USER] Test 21: Unseal data (PCRs unchanged)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xa
+[SEAL] Unseal request, checking PCR policy...
+[SEAL] PCR policy matches, data decrypted with AES-128
+[SEAL] Plaintext recovered (0x10 bytes)
+[PERF] Command 0x8 processed in 0x7a3bb cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! data unsealed)
+[USER] Data matches original: YES (correct!)
+
+
+[USER] ================================
+[USER] Test 22: Modify PCR2 then try unseal
+[USER] (simulates tampered firmware, should fail)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x9
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1fe17 cycles
+[TRAP] ============================
+[USER] PCR2 modified by extra measurement
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x8
+[SEAL] Unseal request, checking PCR policy...
+[SEAL] *** PCR MISMATCH ***
+[SEAL] Cannot derive correct AES key, data stays encrypted
+[PERF] Command 0x8 processed in 0x1c932 cycles
+[TRAP] ============================
+[USER] Unseal status: 0xb (PCR_MISMATCH, correct! data stays locked)
+
+
+[USER] ================================
+[USER] Test 23: Measure REAL firmware binary (not dummy data)
+[USER] Sending first 256 bytes of actual firmware code
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x7
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x100 bytes, target PCR: 0x2
+[PCR] Measured 0x100 bytes, hash = 0x6a0x880x750x10...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x217cf cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! real firmware code measured into PCR2)
+
+[USER] First 8 bytes of real firmware: 0x73 0x10 0x40 0x30 0x17 0xf1 0x1 0x0 ...
+
+[USER] ================================
+[USER] Test 24: Measure second chunk of firmware (offset +512)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x6
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x80 bytes, target PCR: 0x2
+[PCR] Measured 0x80 bytes, hash = 0x930xeb0x210xe1...
+[CORE] Measurement complete
+[PERF] Command 0x1 processed in 0x1f8e2 cycles
+[TRAP] ============================
+[USER] Status: 0x0 (OK! second chunk measured, PCR2 extended)
+
+
+[USER] ================================
+[USER] Test 25: Validate firmware ELF header
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x5
+[ELF] Validating ELF header...
+[ELF] Magic number: OK (7f 45 4c 46)
+[ELF] Class: ELF64 (64-bit)
+[ELF] Endianness: little-endian
+[ELF] Architecture: RISC-V (0xf3)
+[ELF] ELF header validation PASSED
+[PERF] Command 0x9 processed in 0x2d6e3 cycles
+[TRAP] ============================
+[USER] Status: 0xe (ELF_OK! valid RISC-V 64-bit binary)
+
+
+[USER] ================================
+[USER] Test 26: Validate bad ELF (ARM instead of RISC-V)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x4
+[ELF] Validating ELF header...
+[ELF] Magic number: OK (7f 45 4c 46)
+[ELF] Class: ELF64 (64-bit)
+[ELF] Endianness: little-endian
+[ELF] *** WRONG ARCHITECTURE ***
+[ELF] Expected: 0xf3 (RISC-V), got: 0xb7
+[PERF] Command 0x9 processed in 0x23598 cycles
+[TRAP] ============================
+[USER] Status: 0xd (BAD_ELF, correct! ARM binary rejected)
+
+
+[USER] ================================
+[USER] Test 27: Register golden hash + verify section
+[USER] Step 1: Check section without whitelist (should reject)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x3
+[ELF] Section hash: 0x6c 0xbf 0x2c 0x98 ...
+[ELF] *** NO MATCH in whitelist ***
+[ELF] Section REJECTED (unknown binary)
+[PERF] Command 0xa processed in 0x23aa3 cycles
+[TRAP] ============================
+[USER] Status: 0x10 (REJECTED, correct! not in whitelist yet)
+[USER] Step 2: Register golden hash for first 64 bytes of firmware
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x2
+[ELF] Registered golden hash #0x0: 0x6c 0xbf 0x2c 0x98 ...
+[PERF] Command 0xb processed in 0x1c80e cycles
+[TRAP] ============================
+[USER] Status: 0x12 (REGISTERED in whitelist)
+[USER] Step 3: Check same section again (should match now)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x1
+[ELF] Section hash: 0x6c 0xbf 0x2c 0x98 ...
+[ELF] MATCH with whitelist entry #0x0
+[ELF] Section APPROVED for loading
+[PERF] Command 0xa processed in 0x1e871 cycles
+[TRAP] ============================
+[USER] Status: 0xf (MATCH! section approved for loading)
+
+
+[USER] ================================
+[USER] Re-authenticating for supply chain tests
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1003
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] New session: 0x7
+
+[USER] ================================
+[USER] Test 28: Register 3 supply chain vendors
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[CHAIN] Registered vendor 0x0x1 with key: 0xaa 0xbb 0xcc 0xdd ...
+[PERF] Command 0xc processed in 0x1f83b cycles
+[TRAP] ============================
+[USER] Vendor 0x1 (BootCorp): 0x13
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[CHAIN] Registered vendor 0x0x2 with key: 0x11 0x22 0x33 0x44 ...
+[PERF] Command 0xc processed in 0xf136 cycles
+[TRAP] ============================
+[USER] Vendor 0x2 (KernelInc): 0x13
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[CHAIN] Registered vendor 0x0x3 with key: 0xde 0xad 0xbe 0xef ...
+[PERF] Command 0xc processed in 0xf618 cycles
+[TRAP] ============================
+[USER] Vendor 0x3 (AppDev): 0x13
+
+[USER] ================================
+[USER] Test 29: Verify correctly signed bootloader
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[CHAIN] Verifying component from vendor 0x0x1 (0x10 bytes)
+[CHAIN] Signature VALID
+[CHAIN] Component authenticated from vendor 0x0x1
+[PERF] Command 0xd processed in 0x3117b cycles
+[TRAP] ============================
+[USER] Status: 0x14 (CHAIN_OK! bootloader authenticated)
+
+
+[USER] ================================
+[USER] Test 30: Verify tampered component (bad signature)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[CHAIN] Verifying component from vendor 0x0x1 (0x10 bytes)
+[CHAIN] *** SIGNATURE MISMATCH ***
+[CHAIN] Component may be TAMPERED or from wrong vendor
+[PERF] Command 0xd processed in 0x1f95f cycles
+[TRAP] ============================
+[USER] Status: 0x15 (CHAIN_FAIL, correct! tampered component rejected)
+
+
+[USER] ================================
+[USER] Test 31: Verify from unregistered vendor (0xFF)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80003060
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[CHAIN] Verifying component from vendor 0x0xff (0x8 bytes)
+[CHAIN] *** UNKNOWN VENDOR ***
+[CHAIN] Vendor 0x0xff is not registered
+[PERF] Command 0xd processed in 0x1b5fd cycles
+[TRAP] ============================
+[USER] Status: 0x16 (UNKNOWN_VENDOR, correct! vendor 0xFF not registered)
+
+
+[USER] ================================
+[USER] All 31 tests complete
+[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain
+[USER] Handing control back to M-mode
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x800060e0
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[TRAP] >> U-mode finished, generating final report
+
+==========================================
+  Back in M-mode - Final system state
+==========================================
+[SS] Key written to slot 0x4 (0x20 bytes)
+
+[MAIN] --- Final PCR state ---
+[MAIN] PCR0: firmware .text measurement
+[MAIN] PCR1: firmware .rodata measurement
+[MAIN] PCR2: host binary measurements (from U-mode requests)
+[PCR] === PCR dump ===
+[PCR]  PCR0x0: 0xbd0xe80x8f0x390xdc0x1d0x4d0x92...
+[PCR]  PCR0x1: 0x210x840xea0xa10xc00x940x620x55...
+[PCR]  PCR0x2: 0x840x260xba0xfc0xd40xcd0xef0xc...
+[PCR] === End dump ===
+
+[MAIN] --- Final Secure Storage state ---
+[SS] === Storage dump ===
+[SS]  Slot 0x0: 0x20 bytes = 0xff 0xd4 0x58 0x71 0x81 0x58 0x7c 0x57 ...
+[SS]  Slot 0x1: 0x20 bytes = 0xc7 0x56 0xda 0x32 0x52 0x6 0x72 0xa3 ...
+[SS]  Slot 0x2: 0x20 bytes = 0xbd 0xe8 0x8f 0x39 0xdc 0x1d 0x4d 0x92 ...
+[SS]  Slot 0x3: 0x20 bytes = 0x21 0x84 0xea 0xa1 0xc0 0x94 0x62 0x55 ...
+[SS]  Slot 0x4: 0x20 bytes = 0x84 0x26 0xba 0xfc 0xd4 0xcd 0xef 0xc ...
+[SS]  Slot 0x5: 0x4 bytes = 0x0 0x0 0x0 0x2 
+[SS]  Slot 0x6: 0x10 bytes = 0x71 0xf1 0x9b 0x7c 0x99 0x65 0x9d 0xc4 ...
+[SS]  Slot 0x7: 0x20 bytes = 0xe5 0x1b 0x99 0x6d 0x54 0xcb 0x7f 0x95 ...
+[SS] === End dump ===
+
+==========================================
+  ALL TESTS PASSED
+  Root of Trust operational
+==========================================
+qemu-system-riscv64: terminating on signal 15 from pid 2033050 (timeout)

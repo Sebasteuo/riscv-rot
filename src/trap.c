@@ -24,6 +24,7 @@
 #include "secure_storage.h"
 #include "aes128.h"
 #include "keygen.h"
+#include "secret.h"
 
 extern void post_umode_report(void);
 
@@ -46,10 +47,10 @@ extern void post_umode_report(void);
  *   must be 1 before MEASURE or any other service can be used.
  *   resets to 0 if the system locks out.
  * ------------------------------------------------------------------------- */
-static uint32_t failed_tries = 0;
-static uint32_t is_locked = 0;
-static uint32_t lockout_remaining = 0;
-static uint32_t is_authenticated = 0;
+static uint32_t failed_tries __secret;
+static uint32_t is_locked __secret;
+static uint32_t lockout_remaining __secret;
+static uint32_t is_authenticated __secret;
 
 /*
  * da_silent_mode: when 1, the trap handler suppresses all output.
@@ -58,13 +59,13 @@ static uint32_t is_authenticated = 0;
  * gets cleared when the lockout expires or when a real command
  * is processed after unlock.
  */
-static uint32_t da_silent_mode = 0;
+static uint32_t da_silent_mode __secret;
 
 /* ACT session state */
-static uint32_t session_active = 0;
-static uint32_t session_token = 0;
-static uint32_t session_ttl = 0;
-static uint32_t session_counter = 0x1000;
+static uint32_t session_active __secret;
+static uint32_t session_token __secret;
+static uint32_t session_ttl __secret;
+static uint32_t session_counter __secret;
 
 /* -------------------------------------------------------------------------
  * The "correct" password for the crypto core.
@@ -591,8 +592,8 @@ static void process_unseal(volatile uint32_t *shared)
  * Linux, but running at the firmware level before any OS loads.
  * Reference: Sailer et al., USENIX Security 2004.
  * ------------------------------------------------------------------------- */
-static uint8_t elf_whitelist[ELF_WHITELIST_MAX][SHA256_DIGEST_SIZE];
-static uint32_t elf_whitelist_count = 0;
+static uint8_t elf_whitelist[ELF_WHITELIST_MAX][SHA256_DIGEST_SIZE] __secret;
+static uint32_t elf_whitelist_count __secret;
 
 /* -------------------------------------------------------------------------
  * process_elf_validate - check if an ELF header is valid RISC-V 64-bit
@@ -778,8 +779,8 @@ static struct {
     uint8_t id;
     uint8_t key[16];
     uint8_t active;
-} chain_vendors[CHAIN_MAX_VENDORS];
-static uint32_t chain_vendor_count = 0;
+} chain_vendors[CHAIN_MAX_VENDORS] __secret;
+static uint32_t chain_vendor_count __secret;
 
 /* -------------------------------------------------------------------------
  * process_chain_add_vendor - register a vendor key
@@ -1221,6 +1222,9 @@ void trap_handler(void)
 void trap_install(void)
 {
     extern void trap_entry(void);
+
+    /* session counter lives in .secret (zeroed at boot), set its start value */
+    session_counter = 0x1000;
     uint64_t addr = (uint64_t)(uintptr_t)trap_entry;
 
     addr &= ~0x3UL;
