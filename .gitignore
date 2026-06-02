@@ -3,3 +3,8 @@ firmware.dump
 *.o
 lib/mbedtls/
 secure_storage.bin
+*.bak
+out.log
+firmware.elf
+firmware.dump
+secure_storage.bin
