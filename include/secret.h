@@ -14,4 +14,13 @@
  */
 #define __secret __attribute__((section(".secret")))
 
+/*
+ * __secret_const places initialized read-only data (the hardcoded seeds
+ * and the auth password) in the .secret_data section, which the linker
+ * also maps inside the PMP-protected zone at 0x80100000. Unlike __secret,
+ * this section keeps its initial values (it is loaded, not zeroed), so it
+ * is meant for constants that must stay secret from U-mode.
+ */
+#define __secret_const __attribute__((section(".secret_data")))
+
 #endif /* SECRET_H */

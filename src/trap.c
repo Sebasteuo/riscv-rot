@@ -74,7 +74,7 @@ static uint32_t session_counter __secret;
  * provisioning. For our demo we use a fixed 16-byte value.
  * U-mode has to send exactly these bytes to authenticate.
  * ------------------------------------------------------------------------- */
-static const uint8_t correct_password[16] = {
+static const uint8_t correct_password[16] __secret_const = {
     0x52, 0x6F, 0x6F, 0x74, 0x4F, 0x66, 0x54, 0x72,
     0x75, 0x73, 0x74, 0x46, 0x57, 0x21, 0x21, 0x00
     /* this spells "RootOfTrustFW!!" in ASCII */

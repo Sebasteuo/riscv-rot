@@ -73,10 +73,18 @@ SECTIONS
         __stack_top = .;
     } > RAM
 
-    .secret 0x80100000 (NOLOAD) : {
+    .secret_data 0x80100000 : {
+        . = ALIGN(8);
+        __secret_data_start = .;
+        *(.secret_data)
+        . = ALIGN(8);
+        __secret_data_end = .;
+    } > RAM
+
+    .secret (NOLOAD) : {
         . = ALIGN(8);
         __secret_start = .;
-        *(.secret*)
+        *(.secret)
         . = ALIGN(8);
         __secret_end = .;
     } > RAM
