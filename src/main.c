@@ -73,10 +73,10 @@ void main(void)
     int i;
 
     /*
-     * Read the cycle counter (mcycle CSR) to measure boot time.
-     * RISC-V defines mcycle as a 64-bit counter that increments
-     * every clock cycle. We read it at the start and end of the
-     * boot sequence, then print the difference.
+     * Read the machine timer (mtime) to measure boot time. On the
+     * QEMU virt machine mtime runs at a fixed 10 MHz, so the tick
+     * count converts directly to microseconds. We read it at the
+     * start and end of the boot sequence and print the difference.
      *
      * This satisfies SRS-P-001 (boot time <= 500ms) by providing
      * a concrete measurement.
@@ -94,7 +94,7 @@ void main(void)
     /* Step 1: install trap handler */
     trap_install();
 
-    /* Step 2: configure PMP (5 regions) */
+    /* Step 2: configure PMP (6 regions) */
     pmp_setup();
 
     /* Step 3: initialize Secure Storage MMIO device */
