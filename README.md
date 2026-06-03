@@ -21,15 +21,18 @@ sudo apt install gcc-riscv64-linux-gnu
 
 # build QEMU (one time, no submodules needed)
 git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git ~/qemu-ccore
-cd ~/qemu-ccore && ./configure --target-list=riscv64-softmmu
-cd build && ninja -j$(nproc) && cd ~
+cd ~/qemu-ccore
+mkdir -p build && cd build
+../configure --target-list=riscv64-softmmu
+ninja -j$(nproc)
+cd ~
 
 # build and run
 git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
 make && make run
 ```
 
-If everything works you will see `ALL TESTS PASSED` at the end.
+If everything works you will see `ALL TESTS PASSED` at the end. To get a pass/fail exit code (handy for CI), run `make test` instead.
 
 ## What this is
 
@@ -88,34 +91,37 @@ All functions return `TPM2_RC_SUCCESS` on success or a specific error code.
 ## Project structure
 
 | Path | What it does |
-|------|-------------|
-| `src/start.S` | Bootstrap: stack, BSS, jump to main |
-| `src/main.c` | Boot sequence, measurement, Secure Boot check |
-| `src/uart.c` | Serial output via MMIO |
-| `src/pmp.c` | Configures 5 PMP regions |
-| `src/trap.c` | Trap handler with auth, sessions, and all crypto services |
-| `src/trap_entry.S` | Assembly trampoline for trap handling |
-| `src/switch.c` | M-mode to U-mode transition |
-| `src/user.c` | U-mode test suite (31 tests) |
-| `src/secure_storage.c` | MMIO device driver |
-| `src/pcr.c` | PCR extend operations |
-| `src/keygen.c` | HMAC-SHA256 key derivation |
-| `src/tpm2_api.c` | TPM 2.0 client library |
-| `lib/sha256.c` | SHA-256 (FIPS 180-4) |
-| `lib/aes128.c` | AES-128 (FIPS 197) |
-| `tools/verify_quote.py` | Remote attestation verifier |
-| `tools/rot_manager.py` | Management dashboard |
-| `scripts/virt.ld` | Linker script |
+|---|---|
+| src/start.S | Bootstrap: stack, BSS, jump to main |
+| src/main.c | Boot sequence, measurement, Secure Boot check |
+| src/uart.c | Serial output via MMIO |
+| src/pmp.c | Configures 6 PMP regions |
+| src/trap.c | Trap handler with auth, sessions, and all crypto services |
+| src/trap_entry.S | Assembly trampoline for trap handling |
+| src/switch.c | M-mode to U-mode transition |
+| src/user.c | U-mode test suite (35 tests) |
+| src/secure_storage.c | MMIO device driver |
+| src/pcr.c | PCR extend operations |
+| src/keygen.c | HMAC-SHA256 key derivation |
+| src/tpm2_api.c | TPM 2.0 client library |
+| lib/sha256.c | SHA-256 (FIPS 180-4) |
+| lib/aes128.c | AES-128 (FIPS 197) |
+| tools/verify_quote.py | Remote attestation verifier |
+| tools/rot_manager.py | Management dashboard |
+| scripts/virt.ld | Linker script |
 
 ## Memory map
 
 | Address | What | U-mode |
-|---------|------|--------|
-| `0x10000000` | UART | Read + Write |
-| `0x10200000` | Secure Storage MMIO | Blocked |
-| `0x80000000` | Firmware code and data | Read + Write + Execute |
-| `0x80100000` | Secret zone (4KB) | Blocked |
-| `0x80300000` | Shared memory (4KB) | Read + Write, no execute |
+|---|---|---|
+| 0x02000000 | CLINT (mtime) | Blocked |
+| 0x10000000 | UART | Read + Write |
+| 0x10200000 | Secure Storage MMIO | Blocked |
+| 0x80000000 | M-mode crypto core (code, data, stack) | Blocked (default-deny) |
+| 0x80080000 | Shared code (UART, SHA-256, HMAC) | Read + Execute |
+| 0x80090000 | U-mode code and stack | Read + Write + Execute |
+| 0x80100000 | Secret zone (4KB) | Blocked |
+| 0x80300000 | Shared memory mailbox (4KB) | Read + Write, no execute |
 
 ## Secure storage slots
 
@@ -123,11 +129,11 @@ Slot 0 holds the Endorsement Key (32 bytes), slot 1 the Storage Root Key (32 byt
 
 ## Tests
 
-The firmware runs 31 automated tests covering PMP isolation (read and write blocked), authentication (wrong password, lockout, correct password), session management (token creation, TTL exhaustion, expiry), monotonic counters (read, increment, rollback rejection), TPM2_Quote (signature consistency), sealed storage (seal, unseal, PCR mismatch rejection), real binary measurement (actual firmware code), ELF validation (valid RISC-V accepted, ARM rejected), whitelist verification (register and check), and supply chain attestation (valid signature, tampered rejection, unknown vendor rejection).
+The firmware runs 35 automated tests covering PMP isolation (reads blocked, writes blocked, config registers locked from U-mode), authentication (wrong password, lockout, correct password), session management (token creation, TTL exhaustion, expiry), monotonic counters (read, increment, rollback rejection), TPM2_Quote (signature consistency), sealed storage (seal, unseal, PCR mismatch rejection), real binary measurement (actual firmware code), ELF validation (valid RISC-V accepted, ARM rejected), whitelist verification (register and check), and supply chain attestation (valid signature, tampered rejection, unknown vendor rejection).
 
 ## QEMU device
 
-We forked QEMU and added a Secure Storage MMIO device at 0x10200000 with 8 slots of 64 bytes each. The fork is at [gitlab.com/secce/qemu-ccore](https://gitlab.com/secce/qemu-ccore). No external submodules are needed to build it, just clone with `--depth 1` and run configure + ninja.
+We forked QEMU and added a Secure Storage MMIO device at 0x10200000 with 8 slots of 64 bytes each. The fork is at gitlab.com/secce/qemu-ccore. No external submodules are needed to build it, just clone with --depth 1 and run configure + ninja.
 
 ## References
 
