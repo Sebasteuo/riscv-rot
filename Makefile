@@ -41,6 +41,7 @@ OBJS = \
   $(BUILD)/pcr.o \
   $(BUILD)/keygen.o \
   $(BUILD)/aes128.o \
+  $(BUILD)/timer.o \
   $(BUILD)/uart.o \
   $(BUILD)/sha256.o \
   $(BUILD)/hmac.o \

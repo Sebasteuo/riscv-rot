@@ -25,6 +25,7 @@
 #include "aes128.h"
 #include "keygen.h"
 #include "secret.h"
+#include "timer.h"
 
 extern void post_umode_report(void);
 
@@ -926,7 +927,7 @@ static void process_shared_command(void)
      * (command response time <= 100ms).
      */
     uint64_t cmd_start, cmd_end;
-    asm volatile("csrr %0, mcycle" : "=r"(cmd_start));
+    cmd_start = timer_now();
 
     /*
      * Step 1: Handle AUTH command separately
@@ -1122,13 +1123,12 @@ static void process_shared_command(void)
         break;
     }
 
-    /* print command processing time */
-    asm volatile("csrr %0, mcycle" : "=r"(cmd_end));
+    /* command response time using mtime (10 MHz timebase) */
+    cmd_end = timer_now();
     uart_puts("[PERF] Command ");
     uart_put_hex(cmd);
-    uart_puts(" processed in ");
-    uart_put_hex((uint32_t)(cmd_end - cmd_start));
-    uart_puts(" cycles\n");
+    uart_puts(" response (SRS-P-002): ");
+    timer_report(cmd_start, cmd_end, 100);
 }
 
 /* -------------------------------------------------------------------------

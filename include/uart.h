@@ -40,4 +40,7 @@ void uart_puts(const char *s);
  */
 void uart_put_hex(uint64_t value);
 
+/* print an unsigned value in decimal (used for timing in us/ms) */
+void uart_put_dec(uint64_t value);
+
 #endif /* UART_H */

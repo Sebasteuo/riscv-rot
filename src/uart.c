@@ -85,3 +85,15 @@ void uart_put_hex(uint64_t value)
         }
     }
 }
+
+/* -------------------------------------------------------------------------
+ * uart_put_dec - Print an unsigned 64-bit value in decimal
+ * ------------------------------------------------------------------------- */
+void uart_put_dec(uint64_t value)
+{
+    char buf[20];
+    int i = 0;
+    if (value == 0) { uart_putc('0'); return; }
+    while (value > 0) { buf[i++] = (char)('0' + (value % 10)); value /= 10; }
+    while (i > 0) { uart_putc(buf[--i]); }
+}
