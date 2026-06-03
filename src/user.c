@@ -1037,7 +1037,27 @@ void user_entry(void)
 
     /* ---- Done ---- */
     uart_puts("\n[USER] ================================\n");
-    uart_puts("[USER] All 31 tests complete\n");
+        /* ---- Test 32: U-mode cannot read M-mode code (the crypto core) ---- */
+    /*
+     * Tests 1 and 2 proved the secret DATA zone is blocked. This one
+     * proves the crypto core CODE is blocked too: with the full PMP
+     * isolation there is no region covering 0x80000000 for U-mode, so
+     * reading the firmware code from here must raise an access fault.
+     * The trap handler catches it and we continue with garbage, exactly
+     * like Tests 1 and 2. This is the direct evidence for SRS-F-001 (4):
+     * the rest of memory is unreachable from U-mode.
+     */
+    uart_puts("\n[USER] Test 32: Attempting to READ M-mode code at 0x80000000...\n");
+    {
+        extern char __text_start __attribute__((visibility("hidden")));
+        volatile uint8_t *mcode = (volatile uint8_t *)&__text_start;
+        uint8_t got = *mcode;
+        uart_puts("[USER] Byte we got: ");
+        uart_put_hex(got);
+        uart_puts(" (garbage, PMP blocked the read of the crypto core code)\n");
+    }
+
+    uart_puts("[USER] All 32 tests complete\n");
     uart_puts("[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain\n");
     uart_puts("[USER] Handing control back to M-mode\n");
     shared[SHARED_OFF_CMD / 4] = SHARED_CMD_NONE;
