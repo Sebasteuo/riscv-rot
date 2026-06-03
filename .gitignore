@@ -9,3 +9,5 @@ firmware.elf
 firmware.dump
 secure_storage.bin
 build/
+test_output.log
+probe*.log
