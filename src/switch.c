@@ -45,7 +45,7 @@ extern void user_entry(void);
  * The aligned(16) is because RISC-V calling convention wants the
  * stack pointer 16-byte aligned.
  */
-static uint8_t user_stack[4096] __attribute__((aligned(16)));
+static uint8_t user_stack[4096] __attribute__((aligned(16), section(".umode_bss")));
 
 /* -------------------------------------------------------------------------
  * switch_to_user - drop privileges and jump to user_entry()

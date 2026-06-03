@@ -8,3 +8,4 @@ out.log
 firmware.elf
 firmware.dump
 secure_storage.bin
+build/

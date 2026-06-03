@@ -2,27 +2,20 @@
  * virt.ld - Linker script for the QEMU virt machine (RISC-V 64-bit)
  * ==========================================================================
  *
- * What is a linker script?
- * When we compile C or assembly code, the compiler generates object
- * files (.o) with machine code. But those files do not know WHERE in
- * memory they are supposed to live.
+ * Memory is split into separate regions so PMP can enforce isolation:
  *
- * The linker script tells the linker (the tool that puts everything
- * together) exactly where to place each piece of the program in memory.
- * This is critical in bare-metal because there is no operating system
- * to load the program for us.
+ *   0x80000000  M-mode code (.text) + M-mode rodata/data/bss/stack
+ *               Only the crypto core runs here. U-mode has no access.
+ *   0x80080000  Shared code (uart, sha256, hmac) + its rodata
+ *               Both M-mode and U-mode execute these (read+execute).
+ *   0x80090000  U-mode code (user, tpm2_api) + rodata/data/bss + U stack
+ *               U-mode runs here (read+write+execute on its own memory).
+ *   0x80100000  .secret_data (seeds, password) + .secret (PCR, auth state)
+ *               Protected by PMP region 0, no U-mode access.
  *
- * Why 0x80000000?
- * On the QEMU virt machine for RISC-V, RAM starts at address
- * 0x80000000. We did not pick this, it is defined by the hardware
- * (or in this case, by the QEMU virtual machine spec). When QEMU
- * boots with -bios none -kernel, it jumps straight to 0x80000000,
- * so our code has to be sitting right there.
- *
- * Phase 4 additions:
- * We now export __text_start, __text_end, __rodata_start, __rodata_end
- * so the firmware can measure (hash) its own code and data sections
- * at boot time and record the results in PCRs.
+ * The placement is by object file: the linker assigns each .o's sections
+ * to the matching region. Sections listed first (shared, U-mode) are
+ * consumed before the catch-all M-mode .text grabs the rest.
  *
  * Author: Sebastian Alba
  * Project: Root of Trust Firmware for RISC-V with PMP isolation
@@ -38,23 +31,58 @@ MEMORY
 
 SECTIONS
 {
-    . = 0x80000000;
+    /* ---- Shared code region (R+X for both M and U) at 0x80080000 ---- */
+    .text.shared 0x80080000 : {
+        __shared_start = .;
+        build/uart.o(.text .text.*)
+        build/sha256.o(.text .text.*)
+        build/hmac.o(.text .text.*)
+        build/uart.o(.rodata .rodata.*)
+        build/sha256.o(.rodata .rodata.*)
+        build/hmac.o(.rodata .rodata.*)
+        . = ALIGN(8);
+        __shared_end = .;
+    } > RAM
 
-    .text : {
+    /* ---- U-mode region (R+W+X, U-mode owns it) at 0x80090000 ---- */
+    .text.umode 0x80090000 : {
+        __umode_start = .;
+        build/user.o(.text .text.*)
+        build/tpm2_api.o(.text .text.*)
+        build/user.o(.rodata .rodata.*)
+        build/tpm2_api.o(.rodata .rodata.*)
+        build/user.o(.data .data.*)
+        build/tpm2_api.o(.data .data.*)
+        . = ALIGN(8);
+        __umode_data_end = .;
+    } > RAM
+
+    .umode_bss (NOLOAD) : {
+        __umode_bss_start = .;
+        build/user.o(.bss .bss.* COMMON)
+        build/tpm2_api.o(.bss .bss.* COMMON)
+        *(.umode_bss)
+        . = ALIGN(8);
+        __umode_bss_end = .;
+        __umode_end = .;
+    } > RAM
+
+    /* ---- M-mode code at 0x80000000 (catch-all for remaining .text) ---- */
+    .text 0x80000000 : {
         __text_start = .;
         *(.text.init)
-        *(.text*)
+        *(.text .text.*)
         __text_end = .;
     } > RAM
 
     .rodata : {
         __rodata_start = .;
-        *(.rodata*)
+        *(.rodata .rodata.*)
         __rodata_end = .;
     } > RAM
 
     .data : {
-        *(.data*)
+        *(.data .data.*)
     } > RAM
 
     .got : {
@@ -63,7 +91,7 @@ SECTIONS
 
     .bss : {
         __bss_start = .;
-        *(.bss*)
+        *(.bss .bss.*)
         *(COMMON)
         __bss_end = .;
     } > RAM
@@ -73,6 +101,7 @@ SECTIONS
         __stack_top = .;
     } > RAM
 
+    /* ---- Protected secrets at 0x80100000 (PMP region 0, no U access) ---- */
     .secret_data 0x80100000 : {
         . = ALIGN(8);
         __secret_data_start = .;

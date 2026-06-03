@@ -634,8 +634,8 @@ void user_entry(void)
          * crypto core to measure. This is what the professor asked for:
          * the host sends raw binaries, not pre-computed hashes.
          */
-        extern char __text_start;
-        uint8_t *firmware_code = (uint8_t *)&__text_start;
+        extern char __shared_start __attribute__((visibility("hidden")));
+        uint8_t *firmware_code = (uint8_t *)&__shared_start;
         uint32_t chunk_size = 256;  /* measure 256 bytes of real code */
         uint32_t ci;
 
@@ -675,8 +675,8 @@ void user_entry(void)
     uart_puts("\n[USER] ================================\n");
     uart_puts("[USER] Test 24: Measure second chunk of firmware (offset +512)\n");
     {
-        extern char __text_start;
-        uint8_t *firmware_code = (uint8_t *)&__text_start;
+        extern char __shared_start __attribute__((visibility("hidden")));
+        uint8_t *firmware_code = (uint8_t *)&__shared_start;
         uint32_t offset = 512;
         uint32_t chunk_size = 128;
         uint32_t ci;
@@ -792,8 +792,8 @@ void user_entry(void)
          * "known good", then send the same 64 bytes for verification.
          * It should match.
          */
-        extern char __text_start;
-        uint8_t *code = (uint8_t *)&__text_start;
+        extern char __shared_start __attribute__((visibility("hidden")));
+        uint8_t *code = (uint8_t *)&__shared_start;
         uint8_t section_hash[32];
         uint32_t ci;
 
