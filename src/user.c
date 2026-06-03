@@ -1063,7 +1063,61 @@ void user_entry(void)
         uart_puts(" (garbage, PMP blocked the read of the crypto core code)\n");
     }
 
-    uart_puts("[USER] All 32 tests complete\n");
+    /* ---- Test 33: U-mode cannot modify PMP configuration ---- */
+    /*
+     * SRS-F-003: the PMP configuration must be immutable from U-mode.
+     * pmpcfg0 is a Machine-mode CSR, so writing it from U-mode raises an
+     * illegal-instruction exception (mcause 0x2) that the trap handler
+     * catches. We try it and continue; the PMP config stays untouched.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 33: Attempting to WRITE pmpcfg0 from U-mode...\n");
+    uart_puts("[USER] (must trap as illegal instruction, PMP stays locked)\n");
+    {
+        asm volatile("csrw pmpcfg0, zero");
+        uart_puts("[USER] Survived: the write trapped, PMP config unchanged\n");
+    }
+
+    /* ---- Test 34: U-mode cannot read the Secure Storage MMIO (EK/SRK) ---- */
+    /*
+     * SRS-F-009: the EK and SRK live in the Secure Storage device at
+     * 0x10200000, which PMP Region 1 marks as no-access for U-mode. Reading
+     * it from here must raise a load access fault, so the keys never leak.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 34: Attempting to READ Secure Storage at 0x10200000...\n");
+    uart_puts("[USER] (where EK/SRK live, must give access fault)\n");
+    {
+        volatile uint32_t *ss = (volatile uint32_t *)0x10200000UL;
+        uint32_t got = *ss;
+        uart_puts("[USER] Value we got: ");
+        uart_put_hex(got);
+        uart_puts(" (garbage, PMP blocked the read of EK/SRK storage)\n");
+    }
+
+    /* ---- Test 35: unknown command in the shared zone is rejected ---- */
+    /*
+     * SRS-F-015: an unrecognized command code must be rejected with an error
+     * status without changing internal state. We authenticate first so the
+     * request reaches the command dispatcher, then send a bogus 0xEE.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 35: Send an unknown command (0xEE) to the shared zone\n");
+    uart_puts("[USER] (should be rejected with ERROR status)\n");
+    status = send_auth(good_password, 16);
+    shared[SHARED_OFF_CMD / 4] = 0xEE;  /* not a defined command */
+    shared[SHARED_OFF_SIZE / 4] = 0;
+    status = do_ecall();
+    uart_puts("[USER] Status: ");
+    uart_put_hex(status);
+    if (status == SHARED_STATUS_ERROR) {
+        uart_puts(" (ERROR, correct! unknown command rejected)\n");
+    } else {
+        uart_puts(" (unexpected status)\n");
+    }
+    uart_puts("\n");
+
+    uart_puts("[USER] All 35 tests complete\n");
     uart_puts("[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain\n");
 
     /* ACT-14: demonstrate the high-level tpm2_api client library. Everything

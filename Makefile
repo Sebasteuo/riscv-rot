@@ -87,10 +87,10 @@ test: $(TARGET).elf
 	else \
 		echo "  [FAIL] 'ALL TESTS PASSED' not found"; pass=0; \
 	fi; \
-	if grep -q "All 32 tests complete" test_output.log; then \
-		echo "  [OK] 32 tests completed"; \
+	if grep -q "All 35 tests complete" test_output.log; then \
+		echo "  [OK] 35 tests completed"; \
 	else \
-		echo "  [FAIL] did not complete 32 tests"; pass=0; \
+		echo "  [FAIL] did not complete 35 tests"; pass=0; \
 	fi; \
 	tfail=$$(grep "us (limit" test_output.log | grep -c "FAIL"); \
 	if [ "$$tfail" -eq 0 ]; then \
@@ -100,7 +100,7 @@ test: $(TARGET).elf
 	fi; \
 	isol=$$(grep -c "ACCESS FAULT" test_output.log); \
 	if [ "$$isol" -ge 3 ]; then \
-		echo "  [OK] PMP isolation faults present ($$isol access faults: Test 1/2/32)"; \
+		echo "  [OK] PMP isolation faults present ($$isol access faults from U-mode isolation tests)"; \
 	else \
 		echo "  [FAIL] expected PMP isolation faults not observed ($$isol)"; pass=0; \
 	fi; \
