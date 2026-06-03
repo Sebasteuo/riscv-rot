@@ -25,9 +25,13 @@
 #include "pmp.h"
 #include "sha256.h"
 #include "keygen.h"
+#include "tpm2_api.h"
 
 extern void uart_puts(const char *s);
 extern void uart_put_hex(uint64_t val);
+
+/* ACT-14: high-level TPM 2.0 client demo, defined at the end of this file */
+static void tpm2_api_demo(void);
 
 static volatile uint32_t *shared = (volatile uint32_t *)SHARED_BASE;
 static volatile uint8_t *shared_data = (volatile uint8_t *)(SHARED_BASE + SHARED_OFF_DATA);
@@ -171,7 +175,9 @@ static uint32_t send_nv_increment(uint32_t expected_version, uint32_t *out_new)
  * send_quote - request a TPM2_Quote from the crypto core
  *
  * The crypto core signs all PCRs with the EK using HMAC-SHA256.
- * The signature comes back in DATA bytes 4-35 (after the token).
+ * The crypto core writes PCR0+PCR1+PCR2 (96 bytes) starting at DATA
+ * offset 4, then the 32-byte signature at offset 100, which is what
+ * we read here.
  * ------------------------------------------------------------------------- */
 static uint32_t send_quote(uint8_t *out_signature)
 {
@@ -185,7 +191,7 @@ static uint32_t send_quote(uint8_t *out_signature)
     uint32_t status = do_ecall();
     if (status == SHARED_STATUS_OK && out_signature) {
         for (i = 0; i < 32; i++) {
-            out_signature[i] = shared_data[4 + i];
+            out_signature[i] = shared_data[4 + 96 + i];
         }
     }
     return status;
@@ -1059,7 +1065,164 @@ void user_entry(void)
 
     uart_puts("[USER] All 32 tests complete\n");
     uart_puts("[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain\n");
+
+    /* ACT-14: demonstrate the high-level tpm2_api client library. Everything
+     * inside tpm2_api_demo() uses only the TPM2_* API (no raw mailbox writes)
+     * and ends with TPM2_Shutdown(), which performs the handback to M-mode.
+     * Control does not return from it. */
+    tpm2_api_demo();
+}
+
+/* -------------------------------------------------------------------------
+ * tpm2_api_demo - ACT-14: exercise the high-level TPM 2.0 client library
+ *
+ * The 32 tests above write the shared-memory protocol by hand. This routine
+ * does the opposite: it uses only the TPM2_* functions declared in
+ * tpm2_api.h, with no raw mailbox writes, to show the firmware can be driven
+ * through a clean, standard-looking TPM 2.0 interface across the same PMP
+ * isolation. It walks the usual lifecycle: Startup, PCR_Extend, Seal/Unseal,
+ * the NV counter, Quote, and Shutdown.
+ *
+ * The final TPM2_Shutdown() writes SHARED_CMD_NONE and executes the ecall,
+ * which is the handback to M-mode, so control does not return from here.
+ * ------------------------------------------------------------------------- */
+static void tpm2_api_demo(void)
+{
+    /* "RootOfTrustFW!!" */
+    const uint8_t password[16] = {
+        0x52, 0x6F, 0x6F, 0x74, 0x4F, 0x66, 0x54, 0x72,
+        0x75, 0x73, 0x74, 0x46, 0x57, 0x21, 0x21, 0x00
+    };
+    TPM2_RC rc;
+
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[DEMO] tpm2_api client (ACT-14): high-level TPM 2.0 API\n");
+    uart_puts("[DEMO] Every call below goes through tpm2_api.h, no raw writes\n");
+
+    uart_puts("\n[DEMO] TPM2_Startup()\n");
+    rc = TPM2_Startup(password, 16);
+    uart_puts("[DEMO] rc = ");
+    uart_put_hex(rc);
+    if (rc == TPM2_RC_SUCCESS) {
+        uart_puts(" (SUCCESS, session open)\n");
+    } else {
+        uart_puts(" (startup failed, closing)\n");
+        uart_puts("[USER] Handing control back to M-mode\n");
+        TPM2_Shutdown();
+        return;
+    }
+
+    uart_puts("\n[DEMO] TPM2_PCR_Extend(PCR2, payload)\n");
+    {
+        const uint8_t payload[16] = {
+            0x44, 0x45, 0x4D, 0x4F, 0x5F, 0x50, 0x41, 0x59,
+            0x4C, 0x4F, 0x41, 0x44, 0x5F, 0x31, 0x00, 0x00
+        };
+        rc = TPM2_PCR_Extend(2, payload, 16);
+        uart_puts("[DEMO] rc = ");
+        uart_put_hex(rc);
+        if (rc == TPM2_RC_SUCCESS) {
+            uart_puts(" (SUCCESS, PCR2 extended)\n");
+        } else {
+            uart_puts(" (failed)\n");
+        }
+    }
+
+    uart_puts("\n[DEMO] TPM2_Seal(secret) then TPM2_Unseal()\n");
+    {
+        const uint8_t secret[16] = {
+            0x41, 0x50, 0x49, 0x5F, 0x53, 0x65, 0x61, 0x6C,
+            0x65, 0x64, 0x4D, 0x73, 0x67, 0x21, 0x00, 0x00
+        };
+        uint8_t recovered[16];
+        uint32_t k;
+        int match;
+
+        rc = TPM2_Seal(secret, 16);
+        uart_puts("[DEMO] Seal rc = ");
+        uart_put_hex(rc);
+        if (rc == TPM2_RC_SUCCESS) {
+            uart_puts(" (SUCCESS)\n");
+        } else {
+            uart_puts(" (failed)\n");
+        }
+
+        for (k = 0; k < 16; k++) {
+            recovered[k] = 0;
+        }
+        rc = TPM2_Unseal(recovered, 16);
+        uart_puts("[DEMO] Unseal rc = ");
+        uart_put_hex(rc);
+        if (rc == TPM2_RC_SUCCESS) {
+            uart_puts(" (SUCCESS)\n");
+        } else {
+            uart_puts(" (failed)\n");
+        }
+
+        match = 1;
+        for (k = 0; k < 16; k++) {
+            if (recovered[k] != secret[k]) {
+                match = 0;
+                break;
+            }
+        }
+        uart_puts("[DEMO] Recovered data matches original: ");
+        if (match) {
+            uart_puts("YES (seal/unseal round-trip OK)\n");
+        } else {
+            uart_puts("NO\n");
+        }
+    }
+
+    uart_puts("\n[DEMO] TPM2_NV_Read() then TPM2_NV_Increment()\n");
+    {
+        uint32_t counter = 0;
+        uint32_t newval = 0;
+
+        rc = TPM2_NV_Read(&counter);
+        uart_puts("[DEMO] NV_Read rc = ");
+        uart_put_hex(rc);
+        uart_puts(", counter = ");
+        uart_put_hex(counter);
+        uart_puts("\n");
+
+        rc = TPM2_NV_Increment(counter, &newval);
+        uart_puts("[DEMO] NV_Increment rc = ");
+        uart_put_hex(rc);
+        uart_puts(", new counter = ");
+        uart_put_hex(newval);
+        if (rc == TPM2_RC_SUCCESS) {
+            uart_puts(" (SUCCESS)\n");
+        } else {
+            uart_puts(" (failed)\n");
+        }
+    }
+
+    uart_puts("\n[DEMO] TPM2_Quote()\n");
+    {
+        uint8_t signature[32];
+        uint32_t k;
+
+        for (k = 0; k < 32; k++) {
+            signature[k] = 0;
+        }
+        rc = TPM2_Quote(signature);
+        uart_puts("[DEMO] rc = ");
+        uart_put_hex(rc);
+        if (rc == TPM2_RC_SUCCESS) {
+            uart_puts(" (SUCCESS)\n");
+            uart_puts("[DEMO] Signature (first 8 bytes): ");
+            for (k = 0; k < 8; k++) {
+                uart_put_hex(signature[k]);
+                uart_puts(" ");
+            }
+            uart_puts("...\n");
+        } else {
+            uart_puts(" (failed)\n");
+        }
+    }
+
+    uart_puts("\n[DEMO] TPM2_Shutdown() (closes session, hands back to M-mode)\n");
     uart_puts("[USER] Handing control back to M-mode\n");
-    shared[SHARED_OFF_CMD / 4] = SHARED_CMD_NONE;
-    asm volatile("ecall");
+    TPM2_Shutdown();
 }
