@@ -112,6 +112,22 @@ static void write_mepc(uint64_t val)
 }
 
 /* -------------------------------------------------------------------------
+ * insn_len - length in bytes of the instruction at pc
+ *
+ * RISC-V encodes the length in the low bits: if the low two bits of the
+ * first halfword are 0b11 the instruction is 32 bits (4 bytes), otherwise
+ * it is a 16-bit compressed instruction (2 bytes). The trap handler uses
+ * this to skip exactly one trapping instruction, whether or not the C
+ * (compressed) extension is enabled. M-mode can read pc because it
+ * bypasses PMP for unlocked entries.
+ * ------------------------------------------------------------------------- */
+static uint64_t insn_len(uint64_t pc)
+{
+    uint16_t half = *(volatile uint16_t *)pc;
+    return ((half & 0x3) == 0x3) ? 4 : 2;
+}
+
+/* -------------------------------------------------------------------------
  * check_lockout - handle the lockout timer
  *
  * If the system is locked, this decrements the cooldown counter.
@@ -1152,7 +1168,7 @@ void trap_handler(void)
             process_shared_command();
             sh[SHARED_OFF_CMD / 4] = SHARED_CMD_NONE;
         }
-        write_mepc(mepc + 4);
+        write_mepc(mepc + insn_len(mepc));
         return;
     }
 
@@ -1213,7 +1229,7 @@ void trap_handler(void)
 
     uart_puts("[TRAP] ============================\n");
 
-    write_mepc(mepc + 4);
+    write_mepc(mepc + insn_len(mepc));
 }
 
 /* -------------------------------------------------------------------------

@@ -23,7 +23,7 @@ OBJDUMP = $(CROSS)objdump
 # path to our custom QEMU with the Secure Storage MMIO device
 QEMU = $(HOME)/qemu-ccore/build/qemu-system-riscv64
 
-CFLAGS  = -march=rv64g -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -g -O0 -static -mcmodel=medany -Iinclude
+CFLAGS  = -march=rv64gc -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -g -O0 -static -mcmodel=medany -Iinclude
 LDFLAGS = -T scripts/virt.ld -nostdlib -static -Wl,--no-dynamic-linker
 
 BUILD  = build

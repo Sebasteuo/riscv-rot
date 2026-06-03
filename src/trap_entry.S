@@ -76,8 +76,8 @@ trap_entry:
      * mret returns from the trap. It restores the previous privilege
      * mode from mstatus.MPP and jumps to the address in mepc.
      *
-     * Important: in our C handler we bump mepc forward by 4 so that
-     * we skip over the faulting instruction. Otherwise we would land
-     * right back on it and trap again forever.
+     * Important: in our C handler we bump mepc forward by the length of
+     * the trapping instruction (2 or 4 bytes) so that we skip over it.
+     * Otherwise we would land right back on it and trap again forever.
      */
     mret
