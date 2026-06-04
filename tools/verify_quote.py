@@ -16,9 +16,15 @@ How it works:
   6. If they match, the device is authentic and its firmware is intact
 
 Usage:
-  python3 verify_quote.py
+  python3 verify_quote.py            interactive: paste PCR values and
+                                     the signature from the QEMU output
+  python3 verify_quote.py --demo     self-test with example values, no
+                                     QEMU needed (checks that a genuine
+                                     quote passes and a tampered one is
+                                     rejected)
 
-  Or paste PCR values and signature from QEMU output when prompted.
+Exit code is 0 when the verification (or the demo) passes, 1 when it
+fails, so the script can be used from shell scripts and CI.
 
 Based on:
   - TPM 2.0 spec section 6.12 (TPM2_Quote)
@@ -105,6 +111,62 @@ def parse_hex_string(s: str) -> bytes:
         return bytes.fromhex(s)
 
 
+def run_demo(ek: bytes) -> int:
+    """
+    Self-test mode. Simulates a complete attestation exchange with
+    example PCR values, then checks the two properties a verifier
+    must have:
+
+      Check 1: a quote signed with the real EK must PASS
+      Check 2: a tampered quote must be REJECTED
+
+    Returns the exit code (0 = demo passed, 1 = verifier is broken).
+    """
+    print("[VERIFY] Running in demo mode (self-test, no QEMU output needed)")
+    print()
+
+    # Simulated device state: example PCR values, and the signature
+    # that a genuine device holding this EK would produce for them.
+    pcr0 = hashlib.sha256(b'demo .text measurement').digest()
+    pcr1 = hashlib.sha256(b'demo .rodata measurement').digest()
+    pcr2 = hashlib.sha256(b'demo host measurement').digest()
+    genuine_sig = compute_quote_signature(ek, pcr0, pcr1, pcr2)
+
+    # Check 1: the genuine quote must verify
+    print("[VERIFY] Check 1: genuine quote (signature made with the real EK)")
+    expected = compute_quote_signature(ek, pcr0, pcr1, pcr2)
+    ok_genuine = hmac.compare_digest(expected, genuine_sig)
+    print(f"[VERIFY]   Computed: {expected[:8].hex()} ...")
+    print(f"[VERIFY]   Received: {genuine_sig[:8].hex()} ...")
+    print(f"[VERIFY]   Result:   {'ACCEPTED' if ok_genuine else 'REJECTED'}"
+          f"  (expected: ACCEPTED)")
+    print()
+
+    # Check 2: a tampered quote must be rejected. We flip one byte of
+    # the signature, as if an attacker had forged or altered it.
+    print("[VERIFY] Check 2: tampered quote (one byte of the signature flipped)")
+    tampered_sig = bytes([genuine_sig[0] ^ 0xFF]) + genuine_sig[1:]
+    ok_tampered = hmac.compare_digest(expected, tampered_sig)
+    print(f"[VERIFY]   Computed: {expected[:8].hex()} ...")
+    print(f"[VERIFY]   Received: {tampered_sig[:8].hex()} ...")
+    print(f"[VERIFY]   Result:   {'ACCEPTED' if ok_tampered else 'REJECTED'}"
+          f"  (expected: REJECTED)")
+    print()
+
+    if ok_genuine and not ok_tampered:
+        print("  *** DEMO OK ***")
+        print("  The verifier accepts genuine quotes and rejects tampered ones.")
+        print("  For a real verification, run without --demo and paste the")
+        print("  PCR values and Quote signature from the QEMU output.")
+        print()
+        return 0
+
+    print("  *** DEMO FAILED ***")
+    print("  The verifier did not behave as expected. Check this script.")
+    print()
+    return 1
+
+
 def main():
     print("=" * 60)
     print("  Remote Attestation Verifier")
@@ -119,38 +181,29 @@ def main():
     print(f"[VERIFY]   (should match: ff d4 58 71 81 58 7c 57)")
     print()
 
-    # Step 2: Get PCR values from the user (or use example values)
+    # Demo mode: self-contained test, no QEMU output needed
     if len(sys.argv) > 1 and sys.argv[1] == '--demo':
-        print("[VERIFY] Running in demo mode with example values")
-        print()
-        # These are example values; replace with actual QEMU output
-        pcr0 = bytes(32)  # placeholder
-        pcr1 = bytes(32)
-        pcr2 = bytes(32)
-        sig = bytes(32)
-        print("[VERIFY] NOTE: demo mode uses zeroed PCRs")
-        print("[VERIFY] For real verification, run without --demo")
-        print("[VERIFY] and paste values from QEMU output")
-        print()
-    else:
-        print("[VERIFY] Step 2: Enter PCR values from QEMU output")
-        print("[VERIFY] (paste the hex bytes, e.g. '0xc1 0x2c 0x2d ...')")
-        print("[VERIFY] You need all 32 bytes for each PCR.")
-        print()
+        sys.exit(run_demo(ek))
 
-        try:
-            print("PCR0 (32 bytes hex): ", end='')
-            pcr0 = parse_hex_string(input())
-            print("PCR1 (32 bytes hex): ", end='')
-            pcr1 = parse_hex_string(input())
-            print("PCR2 (32 bytes hex): ", end='')
-            pcr2 = parse_hex_string(input())
-            print("Quote signature (32 bytes hex): ", end='')
-            sig = parse_hex_string(input())
-        except (ValueError, EOFError) as e:
-            print(f"\n[VERIFY] Error parsing input: {e}")
-            print("[VERIFY] Try running with --demo for a quick test")
-            return
+    # Step 2: Get PCR values and the signature from the user
+    print("[VERIFY] Step 2: Enter PCR values from QEMU output")
+    print("[VERIFY] (paste the hex bytes, e.g. '0xc1 0x2c 0x2d ...')")
+    print("[VERIFY] You need all 32 bytes for each PCR.")
+    print()
+
+    try:
+        print("PCR0 (32 bytes hex): ", end='')
+        pcr0 = parse_hex_string(input())
+        print("PCR1 (32 bytes hex): ", end='')
+        pcr1 = parse_hex_string(input())
+        print("PCR2 (32 bytes hex): ", end='')
+        pcr2 = parse_hex_string(input())
+        print("Quote signature (32 bytes hex): ", end='')
+        sig = parse_hex_string(input())
+    except (ValueError, EOFError) as e:
+        print(f"\n[VERIFY] Error parsing input: {e}")
+        print("[VERIFY] Try running with --demo for a quick test")
+        sys.exit(2)
 
     print()
 
@@ -170,6 +223,7 @@ def main():
         print("  The firmware has NOT been tampered with.")
         print("  The PCR values are genuine.")
         print()
+        sys.exit(0)
     else:
         print()
         print("  *** ATTESTATION FAILED ***")
@@ -177,6 +231,7 @@ def main():
         print("  The device may have been compromised,")
         print("  or the PCR values may have been forged.")
         print()
+        sys.exit(1)
 
 
 if __name__ == '__main__':

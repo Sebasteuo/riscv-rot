@@ -25,6 +25,11 @@ Usage:
   python3 rot_manager.py --parse FILE     # parse saved QEMU output
   python3 rot_manager.py --report FILE    # generate JSON report
 
+By default --run uses the QEMU binary at ~/qemu-ccore/build/. To test
+against a different build, set the QEMU environment variable:
+
+  QEMU=/path/to/qemu-system-riscv64 python3 rot_manager.py --run
+
 Based on:
   - TCG TSS 2.0 (TPM Software Stack)
   - TCG TAP (TPM Attestation Protocol)
@@ -75,9 +80,26 @@ def verify_quote(ek, pcr0, pcr1, pcr2, signature):
 
 
 def parse_hex_values(line):
-    """Extract hex bytes from a line like '0xff 0xd4 0x58 ...'"""
-    matches = re.findall(r'0x([0-9a-fA-F]{1,2})', line)
-    return bytes([int(m, 16) for m in matches])
+    """
+    Extract hex bytes from a firmware dump line.
+
+    The firmware prints each byte with a 0x prefix and WITHOUT zero
+    padding (0x6 instead of 0x06). The storage dump separates bytes
+    with spaces ('0xff 0xd4 0x58 ...') but the PCR dump concatenates
+    them ('0xbd0xe80x8f0x39...'). A plain regex scan breaks on the
+    concatenated form: for '0x80x9e' it grabs '80' (stealing the '0'
+    that belongs to the next prefix) and corrupts everything after.
+
+    Splitting on the '0x' prefix instead makes the format uniquely
+    decodable: each chunk between prefixes starts with the 1 or 2 hex
+    digits of exactly one byte.
+    """
+    out = []
+    for chunk in line.split('0x')[1:]:
+        m = re.match(r'[0-9a-fA-F]{1,2}', chunk)
+        if m:
+            out.append(int(m.group(0), 16))
+    return bytes(out)
 
 
 def parse_pcr_line(line):
@@ -116,30 +138,43 @@ class RoTManager:
         self.raw_output = output
         lines = output.split('\n')
 
+        # The firmware announces the section name and the measured size
+        # on two separate lines:
+        #   [MAIN] Measuring .text section (code)...
+        #   [PCR] Measured 0xa3a4 bytes, hash = 0x2e0x91...
+        # so we remember which section was announced last and assign the
+        # next 'Measured N bytes' line to it. Later MEASURE service calls
+        # also print 'Measured' lines, but with no pending section they
+        # are ignored.
+        pending_section = None
+
         for line in lines:
             # Secure Boot
             if 'Secure Boot PASSED' in line:
                 self.boot_passed = True
 
-            # Firmware sizes
-            m = re.search(r'Measured (0x[0-9a-f]+) bytes.*text', line, re.I)
+            # Firmware sizes (two-line format, see comment above)
+            m = re.search(r'Measuring \.(\w+) section', line)
             if m:
-                self.firmware_size['text'] = int(m.group(1), 16)
-            m = re.search(r'Measured (0x[0-9a-f]+) bytes.*rodata', line, re.I)
-            if m:
-                self.firmware_size['rodata'] = int(m.group(1), 16)
+                pending_section = m.group(1)
+            m = re.search(r'Measured (0x[0-9a-fA-F]+) bytes', line)
+            if m and pending_section:
+                if pending_section in self.firmware_size:
+                    self.firmware_size[pending_section] = int(m.group(1), 16)
+                pending_section = None
 
             # PCR values (from final dump)
             idx, vals = parse_pcr_line(line)
             if idx is not None:
                 self.pcrs[idx] = vals
 
-            # EK
-            if 'EK derived:' in line:
+            # EK: 'derived' on first boot, 'loaded' when restored from
+            # the persistent Secure Storage on later boots
+            if 'EK derived:' in line or 'EK loaded:' in line:
                 self.ek = parse_hex_values(line)
 
-            # SRK
-            if 'SRK derived:' in line:
+            # SRK: same two variants as the EK
+            if 'SRK derived:' in line or 'SRK loaded:' in line:
                 self.srk = parse_hex_values(line)
 
             # Quote signature (from QUOTE output)
@@ -183,6 +218,14 @@ class RoTManager:
             if m:
                 self.tests_total = int(m.group(1))
                 self.tests_passed = self.tests_total
+
+        # The storage dump always shows the key prefixes (slot 0 = EK,
+        # slot 1 = SRK), so fall back to those if the derivation lines
+        # were not present in this capture.
+        if self.ek is None and self.storage_slots.get(0, {}).get('data'):
+            self.ek = self.storage_slots[0]['data']
+        if self.srk is None and self.storage_slots.get(1, {}).get('data'):
+            self.srk = self.storage_slots[1]['data']
 
     def print_dashboard(self):
         """Print a clean dashboard of the RoT state."""
@@ -310,7 +353,8 @@ class RoTManager:
 
 def run_qemu():
     """Run QEMU and capture the firmware output."""
-    qemu_path = os.path.expanduser("~/qemu-ccore/build/qemu-system-riscv64")
+    qemu_path = os.environ.get("QEMU") or \
+        os.path.expanduser("~/qemu-ccore/build/qemu-system-riscv64")
     firmware_path = "firmware.elf"
 
     if not os.path.exists(firmware_path):
@@ -319,18 +363,29 @@ def run_qemu():
 
     if not os.path.exists(qemu_path):
         print(f"[ERROR] QEMU not found at {qemu_path}")
+        print("[ERROR] Set the QEMU environment variable to use another build.")
         return None
 
-    print("[MANAGER] Starting QEMU...")
+    print("[MANAGER] Starting QEMU (capturing for up to 15 seconds)...")
     try:
         result = subprocess.run(
             [qemu_path, "-machine", "virt", "-cpu", "rv64", "-m", "128M",
              "-nographic", "-bios", "none", "-kernel", firmware_path, "-smp", "1"],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=15,
+            stdin=subprocess.DEVNULL
         )
         return result.stdout
-    except subprocess.TimeoutExpired:
-        print("[MANAGER] QEMU timed out (firmware may be waiting for input)")
+    except subprocess.TimeoutExpired as e:
+        # The firmware never exits on its own (it parks in wfi after the
+        # test suite), so hitting the timeout is the NORMAL way a run
+        # ends. The output captured so far is the complete run.
+        output = e.stdout or ""
+        if isinstance(output, bytes):
+            output = output.decode(errors="replace")
+        if output.strip():
+            print("[MANAGER] QEMU stopped (normal: the firmware never exits)")
+            return output
+        print("[MANAGER] QEMU produced no output before the timeout")
         return None
     except Exception as e:
         print(f"[MANAGER] Error running QEMU: {e}")
@@ -346,6 +401,8 @@ def main():
             if output:
                 manager.parse_output(output)
                 manager.print_dashboard()
+            else:
+                sys.exit(1)
 
         elif sys.argv[1] == '--parse' and len(sys.argv) > 2:
             with open(sys.argv[2], 'r') as f:
@@ -368,6 +425,8 @@ def main():
             print("  python3 rot_manager.py --parse FILE       Parse saved output")
             print("  python3 rot_manager.py --report FILE      Export JSON report")
             print("  python3 rot_manager.py --help             Show full help")
+            print()
+            print("  Set QEMU=/path/to/qemu-system-riscv64 to use another build.")
     else:
         print("Root of Trust Manager - Interactive Mode")
         print()
@@ -391,4 +450,9 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    try:
+        main()
+    except BrokenPipeError:
+        # The consumer of our output closed early (e.g. piping to head).
+        # That is not an error for a CLI tool, so exit quietly.
+        os._exit(0)
