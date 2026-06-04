@@ -16,8 +16,12 @@
  *   3. Clears the BSS section. This is the memory area where global
  *      variables without an initial value live. The C standard says
  *      they must start at zero, so we fill that area with zeros
- *   4. Jumps to the main() function written in C
- *   5. If main() ever returns (which should never happen in firmware),
+ *   4. Clears the .secret section at 0x80100000, where the protected
+ *      M-mode state lives (PCR bank, auth and session state). Same
+ *      zero guarantee as BSS, but this area sits in its own PMP
+ *      protected region, so it needs its own loop
+ *   5. Jumps to the main() function written in C
+ *   6. If main() ever returns (which should never happen in firmware),
  *      the processor stays in an infinite loop doing nothing
  *
  * What is the execution context here?
@@ -43,7 +47,7 @@
 /*
  * Make _start visible to the linker. Without this, the linker would
  * not be able to find our entry point. In virt.ld we use ENTRY(_start)
- * which basically says "program execution begins at _start"
+ * which tells the linker that program execution begins at _start
  */
 .global _start
 
@@ -69,11 +73,13 @@ _start:
     csrw mie, zero
 
     /*
-     * la sp, __stack_top
+     * lla sp, __stack_top
      *
-     * la stands for Load Address, it is a pseudo-instruction (the
-     * assembler converts it into real instructions). It loads a
-     * memory address into a register.
+     * lla stands for Load Local Address. It is a pseudo-instruction:
+     * the assembler expands it into auipc + addi, which build the
+     * address relative to the current program counter. That matches
+     * our -mcmodel=medany build, where all addressing is PC-relative,
+     * and it works no matter where the image gets loaded.
      *
      * sp is the Stack Pointer register, it points to the top of
      * the stack.

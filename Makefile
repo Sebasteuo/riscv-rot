@@ -1,3 +1,7 @@
+# The test recipe below leans on bash behavior (the $$(...) captures and
+# the multi-line if blocks). On Ubuntu /bin/sh is dash, and under dash the
+# QEMU run ended up writing an empty log and every check broke, so we pin
+# the shell to bash explicitly.
 SHELL := /bin/bash
 # ==========================================================================
 # Makefile - Build automation for the Root of Trust firmware
@@ -6,6 +10,7 @@ SHELL := /bin/bash
 # Available commands
 #   make        compile the firmware and generate firmware.elf
 #   make run    compile and run on our custom QEMU (with Secure Storage device)
+#   make test   compile, run the full suite under QEMU, and report pass/fail
 #   make clean  delete generated files
 #
 # Sources are compiled to separate object files under build/ so the linker
@@ -24,7 +29,18 @@ OBJDUMP = $(CROSS)objdump
 # path to our custom QEMU with the Secure Storage MMIO device
 QEMU = $(HOME)/qemu-ccore/build/qemu-system-riscv64
 
+# Compiler flags. Every one of these matters in bare-metal:
+#   -march=rv64gc -mabi=lp64d   target ISA and ABI (SRS-L-001)
+#   -nostdlib -nostartfiles     no libc and no crt0: start.S is our startup
+#   -ffreestanding              tells GCC there is no OS underneath
+#   -g -O0                      debug info and no optimizations, so the
+#                               disassembly in firmware.dump stays readable
+#   -static                     fully static binary, nothing dynamic
+#   -mcmodel=medany             PC-relative addressing, needed because the
+#                               image is linked high in memory (0x80000000)
 CFLAGS  = -march=rv64gc -mabi=lp64d -nostdlib -nostartfiles -ffreestanding -g -O0 -static -mcmodel=medany -Iinclude
+
+# link against our memory map (virt.ld) and keep the ELF fully static
 LDFLAGS = -T scripts/virt.ld -nostdlib -static -Wl,--no-dynamic-linker
 
 BUILD  = build
@@ -64,6 +80,8 @@ $(BUILD)/%.o: lib/%.c | $(BUILD)
 $(BUILD)/%.o: src/%.S | $(BUILD)
 	$(CC) $(CFLAGS) -c $< -o $@
 
+# link with our script, then dump a full disassembly next to the ELF.
+# The dump is handy for checking what ended up at which address.
 $(TARGET).elf: $(OBJS)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $(OBJS)
 	$(OBJDUMP) -d $@ > $(TARGET).dump
@@ -114,7 +132,9 @@ test: $(TARGET).elf
 		exit 1; \
 	fi
 
+# interactive run (quit QEMU with Ctrl-A then X)
 run: $(TARGET).elf
 	$(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -smp 1
 
+# these targets are commands, not files
 .PHONY: all clean run test
