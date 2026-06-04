@@ -17,7 +17,7 @@ docker run --rm -it riscv-rot
 Or build natively:
 
 ```bash
-sudo apt install gcc-riscv64-linux-gnu
+sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu make git ninja-build libglib2.0-dev libpixman-1-dev libslirp-dev python3 python3-venv pkg-config
 
 # build QEMU (one time, no submodules needed)
 git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git ~/qemu-ccore
@@ -32,7 +32,7 @@ git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
 make && make run
 ```
 
-If everything works you will see `ALL TESTS PASSED` at the end. To get a pass/fail exit code (handy for CI), run `make test` instead.
+If everything works you will see `ALL TESTS PASSED` at the end (exit QEMU with Ctrl-A then X). To get a pass/fail exit code (handy for CI), run `make test` instead.
 
 ## What this is
 
@@ -86,7 +86,7 @@ All functions return `TPM2_RC_SUCCESS` on success or a specific error code.
 
 `tools/verify_quote.py` verifies remote attestation by recomputing the Quote signature from the EK seed and comparing it with what the device reported. Run `python3 tools/verify_quote.py --demo` for a quick test.
 
-`tools/rot_manager.py` parses QEMU output and shows a management dashboard with all PCRs, storage slots, counter values, and test results. It can also export a JSON report. Run `make run 2>&1 | tee output.txt`, kill QEMU, then `python3 tools/rot_manager.py --parse output.txt`.
+`tools/rot_manager.py` parses QEMU output and shows a management dashboard with all PCRs, storage slots, counter values, and test results. It can also export a JSON report. Run `python3 tools/rot_manager.py --run` for a live dashboard, or `--parse FILE` on a saved capture.
 
 ## Project structure
 
