@@ -18,6 +18,9 @@
 #define HPM_EVENT_TRAP_TAKEN      0xF4
 #define HPM_EVENT_PRIV_SWITCH     0xF5
 
+/* Number of counters currently mapped */
+#define HPM_MAPPED_COUNTERS 5
+
 /* Map available events to physical counters and reset them */
 void hpm_init(void);
 

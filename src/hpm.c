@@ -2,14 +2,25 @@
 #include "uart.h"
 
 /*
- * Raw CSR numbers. The assembler does not always accept the mhpmevent3
- * and mhpmcounter3 mnemonics, so the encodings are used directly.
+ * Raw CSR numbers. The assembler does not always accept the mhpmeventN
+ * and mhpmcounterN mnemonics, so the encodings are used directly.
+ *
+ * mhpmevent3..7   = 0x323..0x327
+ * mhpmcounter3..7 = 0xB03..0xB07
  */
-#define CSR_MHPMEVENT3    0x323
-#define CSR_MHPMEVENT4    0x324
-#define CSR_MHPMCOUNTER3  0xB03
-#define CSR_MHPMCOUNTER4  0xB04
-#define CSR_MCOUNTINHIBIT 0x320
+
+/* Counter index -> event mapping, kept in sync with hpm_init() */
+static const struct {
+    int         ctr;
+    unsigned    event;
+    const char *name;
+} hpm_map[HPM_MAPPED_COUNTERS] = {
+    { 3, HPM_EVENT_PRIV_SWITCH,   "PRIV_SWITCH  " },
+    { 4, HPM_EVENT_TRAP_TAKEN,    "TRAP_TAKEN   " },
+    { 5, HPM_EVENT_LOAD_RETIRED,  "LOAD_RETIRED " },
+    { 6, HPM_EVENT_STORE_RETIRED, "STORE_RETIRED" },
+    { 7, HPM_EVENT_JUMP_INDIRECT, "JUMP_INDIRECT" },
+};
 
 void hpm_init(void)
 {
@@ -17,23 +28,29 @@ void hpm_init(void)
 
     uart_puts("[HPM] Mapping architectural events...\n");
 
-    /* Counter 3 <- PRIV_SWITCH */
+    /* Select which event each counter tracks */
     asm volatile("csrw 0x323, %0" :: "r"((uint64_t)HPM_EVENT_PRIV_SWITCH));
-
-    /* Counter 4 <- TRAP_TAKEN */
     asm volatile("csrw 0x324, %0" :: "r"((uint64_t)HPM_EVENT_TRAP_TAKEN));
+    asm volatile("csrw 0x325, %0" :: "r"((uint64_t)HPM_EVENT_LOAD_RETIRED));
+    asm volatile("csrw 0x326, %0" :: "r"((uint64_t)HPM_EVENT_STORE_RETIRED));
+    asm volatile("csrw 0x327, %0" :: "r"((uint64_t)HPM_EVENT_JUMP_INDIRECT));
 
     /* Start from zero */
     asm volatile("csrw 0xB03, zero");
     asm volatile("csrw 0xB04, zero");
+    asm volatile("csrw 0xB05, zero");
+    asm volatile("csrw 0xB06, zero");
+    asm volatile("csrw 0xB07, zero");
 
-    /* Clear the inhibit bits for counters 3 and 4 if set */
+    /* Clear the inhibit bits for counters 3 through 7 */
     asm volatile("csrr %0, 0x320" : "=r"(inhibit));
-    inhibit &= ~((1UL << 3) | (1UL << 4));
+    inhibit &= ~((1UL << 3) | (1UL << 4) | (1UL << 5) |
+                 (1UL << 6) | (1UL << 7));
     asm volatile("csrw 0x320, %0" :: "r"(inhibit));
 
-    uart_puts("[HPM]   counter 3 = PRIV_SWITCH (0xF5)\n");
-    uart_puts("[HPM]   counter 4 = TRAP_TAKEN  (0xF4)\n");
+    uart_puts("[HPM]   ctr3 = PRIV_SWITCH    ctr4 = TRAP_TAKEN\n");
+    uart_puts("[HPM]   ctr5 = LOAD_RETIRED   ctr6 = STORE_RETIRED\n");
+    uart_puts("[HPM]   ctr7 = JUMP_INDIRECT\n");
     uart_puts("[HPM] Counters ready\n");
 }
 
@@ -42,29 +59,31 @@ uint64_t hpm_read(int ctr_idx)
     uint64_t v = 0;
 
     switch (ctr_idx) {
-    case 3:
-        asm volatile("csrr %0, 0xB03" : "=r"(v));
-        break;
-    case 4:
-        asm volatile("csrr %0, 0xB04" : "=r"(v));
-        break;
-    default:
-        break;
+    case 3: asm volatile("csrr %0, 0xB03" : "=r"(v)); break;
+    case 4: asm volatile("csrr %0, 0xB04" : "=r"(v)); break;
+    case 5: asm volatile("csrr %0, 0xB05" : "=r"(v)); break;
+    case 6: asm volatile("csrr %0, 0xB06" : "=r"(v)); break;
+    case 7: asm volatile("csrr %0, 0xB07" : "=r"(v)); break;
+    default: break;
     }
     return v;
 }
 
 void hpm_dump(const char *label)
 {
+    int i;
+
     uart_puts("[HPM] === ");
     uart_puts(label);
     uart_puts(" ===\n");
 
-    uart_puts("[HPM]  PRIV_SWITCH (ctr3): ");
-    uart_put_dec(hpm_read(3));
-    uart_puts("\n");
-
-    uart_puts("[HPM]  TRAP_TAKEN  (ctr4): ");
-    uart_put_dec(hpm_read(4));
-    uart_puts("\n");
+    for (i = 0; i < HPM_MAPPED_COUNTERS; i++) {
+        uart_puts("[HPM]  ");
+        uart_puts(hpm_map[i].name);
+        uart_puts(" (ctr");
+        uart_put_dec((uint64_t)hpm_map[i].ctr);
+        uart_puts("): ");
+        uart_put_dec(hpm_read(hpm_map[i].ctr));
+        uart_puts("\n");
+    }
 }
