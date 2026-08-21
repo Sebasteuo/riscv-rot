@@ -211,6 +211,7 @@ void main(void)
      */
     uart_puts("\n");
     hpm_init();
+    hpm_selftest();
 
     /* Step 8: drop to U-mode */
     switch_to_user();

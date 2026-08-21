@@ -18,6 +18,17 @@
 #define HPM_EVENT_TRAP_TAKEN      0xF4
 #define HPM_EVENT_PRIV_SWITCH     0xF5
 
+/* Physical counter indices, kept in sync with hpm_init() */
+#define HPM_CTR_PRIV    3
+#define HPM_CTR_TRAP    4
+#define HPM_CTR_LOAD    5
+#define HPM_CTR_STORE   6
+#define HPM_CTR_JUMP    7
+#define HPM_CTR_BRANCH  8
+
+/* Run the counter unit tests */
+void hpm_selftest(void);
+
 /* Number of counters currently mapped */
 #define HPM_MAPPED_COUNTERS 6
 
