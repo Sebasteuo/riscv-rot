@@ -196,3 +196,92 @@ bien.
 También abrí la rama `tfg-counters` en qemu-ccore para q los cambios míos
 queden separados del fork.
 
+### Viernes 22
+
+Terminé de instrumentar los 6 contadores del núcleo mínimo. Quedaron todos.
+
+**Lo primero fue entender un problema q no tenía ayer.** Los 2 de ayer los
+puse en funciones C normales, o sea q se ejecutan cada vez q pasa el evento.
+Pero cargas, almacenamientos y saltos se traducen, y el traductor de QEMU
+corre UNA sola vez y después el código traducido se reutiliza miles de
+veces. Si ponía el incremento ahí directo iba a contar cuántas veces se
+tradujo la instrucción, no cuántas veces se ejecutó. Habría dado números q
+parecen razonables pero están mal.
+
+La solución fue hacer un helper: el traductor genera código q, en tiempo de
+ejecución, llama a una función C q incrementa el contador. Eso sí cuenta
+ejecuciones reales.
+
+**Lo bueno es q había 3 puntos centrales** por donde pasa todo:
+`gen_load` cubre lb, lh, lw, ld y las variantes sin signo. `gen_store` cubre
+sb, sh, sw, sd. Y `trans_jalr` los saltos indirectos. Con 3 ediciones cubrí
+las 3 familias completas.
+
+El de saltos condicionales fue distinto xq la instrucción se ejecuta siempre
+pero el salto se toma o no según la comparación. Si lo ponía al inicio iba a
+contar TODOS los saltos ejecutados, no los tomados. Por suerte QEMU tiene el
+código comentado: hay un `gen_set_label(l); /* branch taken */` y ahí es
+donde va, después de la etiqueta.
+
+**Los 6 contadores midiendo:**
+
+PRIV_SWITCH         268
+TRAP_TAKEN          134
+LOAD_RETIRED    1102856
+STORE_RETIRED    526736
+JUMP_INDIRECT     52387
+BRANCH_TAKEN     142537
+
+Las cargas son como el doble de los almacenamientos, q es lo q se espera de
+código compilado con -O0. Si hubiera salido al revés algo estaría mal.
+
+### El experimento de varianza, q fue lo mejor del día
+
+Corrí el mismo binario 10 veces desde cero y comparé. `PRIV_SWITCH` y
+`TRAP_TAKEN` dieron **exactamente lo mismo las 10 veces**. Los otros 4
+variaron, pero poquísimo, todo por debajo del 0.011%.
+
+Lo raro fue q la variación estaba **cuantizada**. Los valores de
+LOAD_RETIRED eran 1102834, 1102856, 1102878, 1102900. Las diferencias:
+22, 22, 22. Siempre el mismo paso. Y los 4 contadores se movían juntos.
+
+Eso no es ruido aleatorio, es el programa ejecutando un bloque completo una
+vez más o una vez menos. Entonces me puse a buscar cuál era.
+
+Primero pensé q era el bucle del lockout, pero conté las iteraciones y son
+2 en las 10 corridas. Estable. Hipótesis descartada.
+
+**El culpable resultó ser `uart_put_dec`.** El firmware imprime tiempos con
+`timer_report` en cada comando, y esos tiempos cambian entre corridas xq el
+timer de QEMU se aproxima desde el reloj del host. Cuando un tiempo tiene un
+dígito más, `uart_put_dec` hace una división más en su bucle. Con -O0 eso
+cuesta exactamente 22 cargas.
+
+Lo comprobé contando el total de dígitos impresos en cada corrida:
+
+| Dígitos | LOAD_RETIRED |
+|---|---|
+| 165 | 1102834 |
+| 166 | 1102856 |
+| 167 | 1102878 |
+
+Correlación perfecta. Un dígito = 22 cargas, 18 almacenamientos, 2 saltos
+indirectos y 4 saltos tomados. Siempre.
+
+**Por q esto importa tanto:** el SoK de Das (IEEE S&P 2019) es la crítica más
+fuerte q existe contra usar contadores para seguridad, y lista 4 problemas:
+no determinismo, sobreconteo, contaminación entre procesos y pérdida en
+cambios de contexto. Ahora puedo decir con datos propios q **ninguno de los
+4 aplica** en mi plataforma. Y no puedo decir solo "varía poco", puedo decir
+q toda la variación se explica por trabajo realmente ejecutado y no por
+error de medición. Eso es cualitativamente distinto.
+
+Das además dice q los modelos q dependen de deltas del 1% al 5% colapsan por
+error de medición. Yo estoy 2 órdenes de magnitud por debajo de ese piso.
+
+Dejé el experimento como script en `tools/hpm_variance.py` para q sea
+reproducible y no quede solo como una tabla en el informe.
+
+**Falta para cerrar el OE2:** pruebas unitarias por contador (correr una
+carga conocida y verificar q da el número esperado) y documentar el parche.
+
