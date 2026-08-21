@@ -19,6 +19,7 @@
 #include "sha256.h"
 #include "pcr.h"
 #include "keygen.h"
+#include "hpm.h"
 
 extern void switch_to_user(void);
 
@@ -55,6 +56,10 @@ void post_umode_report(void)
 
     uart_puts("\n[MAIN] --- Final Secure Storage state ---\n");
     ss_dump();
+
+    /* Architectural event counters (CE-5600) */
+    uart_puts("\n[MAIN] --- Architectural event counters ---\n");
+    hpm_dump("final state");
 
     uart_puts("\n==========================================\n");
     uart_puts("  ALL TESTS PASSED\n");
@@ -198,6 +203,14 @@ void main(void)
 
     uart_puts("\n[OK] M-mode setup complete. Dropping to U-mode.\n");
     uart_puts("[OK] U-mode will use shared memory to request measurements.\n\n");
+
+    /*
+     * Architectural event counters (CE-5600).
+     * Mapped right before dropping to U-mode so the counts cover
+     * the U-mode run and the return trip, not the M-mode setup.
+     */
+    uart_puts("\n");
+    hpm_init();
 
     /* Step 8: drop to U-mode */
     switch_to_user();

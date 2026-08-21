@@ -63,7 +63,8 @@ OBJS = \
   $(BUILD)/sha256.o \
   $(BUILD)/hmac.o \
   $(BUILD)/user.o \
-  $(BUILD)/tpm2_api.o
+  $(BUILD)/tpm2_api.o \
+  $(BUILD)/hpm.o
 
 all: $(TARGET).elf
 
