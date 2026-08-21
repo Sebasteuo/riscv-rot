@@ -1,13 +1,18 @@
-firmware.elf
-firmware.dump
-*.o
-lib/mbedtls/
-secure_storage.bin
-*.bak
-out.log
-firmware.elf
-firmware.dump
-secure_storage.bin
+# Artefactos de compilación
 build/
-test_output.log
-probe*.log
+*.o
+firmware.elf
+firmware.dump
+
+# Estado persistente del Secure Storage
+secure_storage.bin
+
+# Logs
+*.log
+
+# Dependencias externas
+lib/mbedtls/
+
+# Temporales
+*.bak
+main
