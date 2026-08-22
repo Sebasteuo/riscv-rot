@@ -29,13 +29,33 @@ void hpm_init(void)
 
     uart_puts("[HPM] Mapping architectural events...\n");
 
+    /*
+     * The four instruction counters run with MINH set, so they do not
+     * count while the processor is in M-mode. Without this the crypto
+     * core measures its own execution: a full run retires roughly
+     * 1.13 M loads in total but only 120 K of those happen in U-mode,
+     * so close to 90 percent of the raw signal comes from the
+     * monitoring code rather than the monitored system.
+     *
+     * Note that QEMU maps events to counters one to one: writing the
+     * same event id to a second mhpmevent register is silently ignored
+     * because the event is already present in the lookup table. A
+     * filtered and an unfiltered view of the same event therefore
+     * cannot coexist within a single run.
+     */
+
     /* Select which event each counter tracks */
     asm volatile("csrw 0x323, %0" :: "r"((uint64_t)HPM_EVENT_PRIV_SWITCH));
     asm volatile("csrw 0x324, %0" :: "r"((uint64_t)HPM_EVENT_TRAP_TAKEN));
-    asm volatile("csrw 0x325, %0" :: "r"((uint64_t)HPM_EVENT_LOAD_RETIRED));
-    asm volatile("csrw 0x326, %0" :: "r"((uint64_t)HPM_EVENT_STORE_RETIRED));
-    asm volatile("csrw 0x327, %0" :: "r"((uint64_t)HPM_EVENT_JUMP_INDIRECT));
-    asm volatile("csrw 0x328, %0" :: "r"((uint64_t)HPM_EVENT_BRANCH_TAKEN));
+    asm volatile("csrw 0x325, %0"
+                 :: "r"((uint64_t)HPM_EVENT_LOAD_RETIRED | HPM_MINH));
+    asm volatile("csrw 0x326, %0"
+                 :: "r"((uint64_t)HPM_EVENT_STORE_RETIRED | HPM_MINH));
+    asm volatile("csrw 0x327, %0"
+                 :: "r"((uint64_t)HPM_EVENT_JUMP_INDIRECT | HPM_MINH));
+    asm volatile("csrw 0x328, %0"
+                 :: "r"((uint64_t)HPM_EVENT_BRANCH_TAKEN | HPM_MINH));
+
 
     /* Start from zero */
     asm volatile("csrw 0xB03, zero");
@@ -45,7 +65,7 @@ void hpm_init(void)
     asm volatile("csrw 0xB07, zero");
     asm volatile("csrw 0xB08, zero");
 
-    /* Clear the inhibit bits for counters 3 through 7 */
+    /* Clear the inhibit bits for counters 3 through 8 */
     asm volatile("csrr %0, 0x320" : "=r"(inhibit));
     inhibit &= ~((1UL << 3) | (1UL << 4) | (1UL << 5) |
                  (1UL << 6) | (1UL << 7) | (1UL << 8));

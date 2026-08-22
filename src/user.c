@@ -1078,6 +1078,26 @@ void user_entry(void)
         uart_puts("[USER] Survived: the write trapped, PMP config unchanged\n");
     }
 
+    /* ---- Test 35b: generate a known U-mode workload ---- */
+    /*
+     * Counters 9 and 10 have MINH set, so they only advance while the
+     * processor is in U-mode. This loop runs entirely in U-mode with no
+     * ecall, so it is the only part of the run those counters should see.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 35b: 2000 U-mode memory accesses\n");
+    {
+        static volatile uint64_t umode_buf[8];
+        volatile uint64_t acc = 0;
+        int k;
+        for (k = 0; k < 1000; k++) {
+            umode_buf[k & 7] = (uint64_t)k;
+            acc += umode_buf[k & 7];
+        }
+        (void)acc;
+        uart_puts("[USER] Workload done\n");
+    }
+
     /* ---- Test 36: U-mode cannot read the architectural counters ---- */
     /*
      * The event counters are an asset of the runtime attestation service:

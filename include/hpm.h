@@ -26,6 +26,16 @@
 #define HPM_CTR_JUMP    7
 #define HPM_CTR_BRANCH  8
 
+
+/*
+ * Privilege-mode inhibit bits in mhpmeventN, from the Sscofpmf
+ * extension. Setting MINH stops the counter while in M-mode, which is
+ * how the crypto core keeps its own execution out of the measurement.
+ */
+#define HPM_MINH  (1ULL << 62)
+#define HPM_SINH  (1ULL << 61)
+#define HPM_UINH  (1ULL << 60)
+
 /* Run the counter unit tests */
 void hpm_selftest(void);
 
