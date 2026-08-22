@@ -4,6 +4,7 @@
 #include "uart.h"
 #include "tweetnacl.h"
 #include "elf64.h"
+#include "timer.h"
 
 /*
  * Stage-1: the minimal trusted bootloader.
@@ -69,10 +70,14 @@ static int verify_signature(const uint8_t *digest, const uint8_t *sig)
                             stage2_pubkey);
 }
 
+uint64_t s1_hash_us;
+uint64_t s1_sig_us;
+
 static image_result_t verify_stage2(const image_header_t *hdr,
                                     const uint8_t *payload)
 {
     uint8_t digest[32];
+    uint64_t t0, t1, t2;
 
     if (hdr->magic != IMAGE_MAGIC) {
         return IMAGE_ERR_MAGIC;
@@ -88,11 +93,17 @@ static image_result_t verify_stage2(const image_header_t *hdr,
         return IMAGE_ERR_SIZE;
     }
 
+    t0 = timer_now();
     sha256(payload, hdr->payload_size, digest);
+    t1 = timer_now();
 
     if (verify_signature(digest, hdr->signature) != 0) {
         return IMAGE_ERR_SIGNATURE;
     }
+    t2 = timer_now();
+
+    s1_hash_us = (t1 - t0) / 10;
+    s1_sig_us  = (t2 - t1) / 10;
 
     return IMAGE_OK;
 }
@@ -106,7 +117,9 @@ void stage1_main(void)
     elf_result_t load_rc;
     uint64_t entry = 0;
     void (*stage2_entry)(void);
+    uint64_t t_start, t_verified, t_loaded;
 
+    t_start = timer_now();
     uart_puts("\n[S1] Stage-1 bootloader\n");
     uart_puts("[S1] Verifying Stage-2 signature...\n");
 
@@ -127,6 +140,8 @@ void stage1_main(void)
         break;
     }
 
+    t_verified = timer_now();
+
     uart_puts("[S1] Signature valid, version ");
     uart_put_dec((uint64_t)hdr->version);
     uart_puts("\n[S1] Loading Stage-2 segments...\n");
@@ -142,6 +157,24 @@ void stage1_main(void)
         uart_puts("\n");
         halt("Stage-2 image is malformed");
     }
+
+    t_loaded = timer_now();
+
+    /*
+     * mtime runs at 10 MHz on the QEMU virt machine, so ticks divided
+     * by 10 gives microseconds.
+     */
+    uart_puts("[S1] SHA-256 over payload: ");
+    uart_put_dec(s1_hash_us);
+    uart_puts(" us\n[S1] Ed25519 verify: ");
+    uart_put_dec(s1_sig_us);
+    uart_puts(" us\n[S1] Verification total: ");
+    uart_put_dec((t_verified - t_start) / 10);
+    uart_puts(" us\n[S1] Segment loading: ");
+    uart_put_dec((t_loaded - t_verified) / 10);
+    uart_puts(" us\n[S1] Stage-1 total: ");
+    uart_put_dec((t_loaded - t_start) / 10);
+    uart_puts(" us\n");
 
     uart_puts("[S1] Entry point ");
     uart_put_hex(entry);

@@ -164,7 +164,8 @@ S1_OBJS = $(S1BUILD)/stage1_start.o \
 	$(S1BUILD)/sha256.o \
 	$(S1BUILD)/uart.o \
 	$(S1BUILD)/tweetnacl.o \
-	$(S1BUILD)/elf64.o
+	$(S1BUILD)/elf64.o \
+	$(S1BUILD)/timer.o
 
 # Generate the signing keypair once
 $(KEYPREFIX).pub:
@@ -198,6 +199,9 @@ $(S1BUILD)/tweetnacl.o: lib/tweetnacl/tweetnacl.c | $(S1BUILD)
 	$(CC) $(S1_CFLAGS) -c $< -o $@
 
 $(S1BUILD)/elf64.o: src/elf64.c | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+$(S1BUILD)/timer.o: lib/timer.c | $(S1BUILD)
 	$(CC) $(S1_CFLAGS) -c $< -o $@
 
 stage1.elf: $(S1_OBJS)
