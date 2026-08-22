@@ -16,3 +16,8 @@ lib/mbedtls/
 # Temporales
 *.bak
 main
+
+# Signing keys: the private half must never be committed
+keys/
+stage1.elf
+stage2.img

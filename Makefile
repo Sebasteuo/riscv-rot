@@ -140,3 +140,84 @@ run: $(TARGET).elf
 
 # these targets are commands, not files
 .PHONY: all clean run test
+
+# ---------------------------------------------------------------------------
+# Two-stage secure boot (OE1)
+#
+# Stage-1 is a minimal bootloader that verifies an Ed25519 signature over
+# the SHA-256 digest of Stage-2 before transferring control. The keypair
+# lives in keys/ and is generated on first build; the private half is
+# gitignored and never enters the device.
+# ---------------------------------------------------------------------------
+
+KEYDIR    = keys
+KEYPREFIX = $(KEYDIR)/stage2
+S1BUILD   = build/stage1
+
+S1_CFLAGS = -march=rv64gc -mabi=lp64d -nostdlib -nostartfiles \
+	-ffreestanding -O2 -static -mcmodel=medany \
+	-ffunction-sections -fdata-sections \
+	-Iinclude -Ilib/tweetnacl
+
+S1_OBJS = $(S1BUILD)/stage1_start.o \
+	$(S1BUILD)/stage1_main.o \
+	$(S1BUILD)/sha256.o \
+	$(S1BUILD)/uart.o \
+	$(S1BUILD)/tweetnacl.o \
+	$(S1BUILD)/elf64.o
+
+# Generate the signing keypair once
+$(KEYPREFIX).pub:
+	@mkdir -p $(KEYDIR)
+	python3 tools/sign_image.py keygen $(KEYPREFIX)
+
+# Embed the public key into a header Stage-1 includes
+$(S1BUILD)/pubkey.h: $(KEYPREFIX).pub
+	@mkdir -p $(S1BUILD)
+	@python3 -c "import sys; \
+	 k=open('$(KEYPREFIX).pub','rb').read(); \
+	 print(', '.join('0x%02X'%b for b in k))" > $@
+
+$(S1BUILD):
+	mkdir -p $(S1BUILD)
+
+$(S1BUILD)/stage1_start.o: src/stage1_start.S | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+$(S1BUILD)/stage1_main.o: src/stage1_main.c $(S1BUILD)/pubkey.h | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) \
+	  -DPUBKEY_PLACEHOLDER="$$(cat $(S1BUILD)/pubkey.h)" -c $< -o $@
+
+$(S1BUILD)/sha256.o: lib/sha256.c | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+$(S1BUILD)/uart.o: src/uart.c | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+$(S1BUILD)/tweetnacl.o: lib/tweetnacl/tweetnacl.c | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+$(S1BUILD)/elf64.o: src/elf64.c | $(S1BUILD)
+	$(CC) $(S1_CFLAGS) -c $< -o $@
+
+stage1.elf: $(S1_OBJS)
+	$(CC) $(S1_CFLAGS) -T scripts/stage1.ld -Wl,--gc-sections \
+	  -Wl,--no-dynamic-linker -o $@ $(S1_OBJS)
+	riscv64-linux-gnu-size $@
+
+# Stage-2 is the existing firmware, stripped to a raw binary and signed
+stage2.img: $(TARGET).elf $(KEYPREFIX).pub
+	python3 tools/sign_image.py sign $(KEYPREFIX) $(TARGET).elf $@ 1
+
+secureboot: stage1.elf stage2.img
+
+run-secureboot: secureboot
+	$(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
+	  -bios stage1.elf \
+	  -device loader,file=stage2.img,addr=0x80200000 \
+	  -smp 1
+
+clean-secureboot:
+	rm -rf $(S1BUILD) stage1.elf stage2.img
+
+.PHONY: secureboot run-secureboot clean-secureboot
