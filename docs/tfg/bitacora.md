@@ -285,3 +285,92 @@ reproducible y no quede solo como una tabla en el informe.
 **Falta para cerrar el OE2:** pruebas unitarias por contador (correr una
 carga conocida y verificar q da el número esperado) y documentar el parche.
 
+### Viernes 22 (continuación, tarde)
+
+Día largo pero cerré el OE2 completo y avancé bastante en los otros dos.
+
+**Etapa 1.** Verifiqué el preprint HPCCFA en arXiv, q era lo único q me
+faltaba del punto 1. Resultó q **sí es RISC-V**, corre sobre Keystone en una
+VisionFive2. Uno de mis corpus decía q era x86 y estaba mal. Es mi competidor
+más cercano: coincide en RISC-V, contadores y attestation.
+
+Igual me quedan 3 diferencias: ellos corren dentro de un enclave Keystone con
+security monitor y OS, generan trazas en vez de clasificar con un modelo, y
+no está arbitrado. Lo q sí tengo q reconocer es q ellos evalúan en silicio
+real y yo en emulación.
+
+Escribí el modelo de amenazas (punto 4) y el posicionamiento (punto 2). Del
+modelo de amenazas lo q más me sirvió fue separar las garantías fuertes de
+las probabilísticas: el aislamiento y la autenticidad son fuertes, pero la
+detección de compromiso es probabilística y hay q decirlo así o un lector lo
+ataca. También declaré la inyección de fallos como fuera de alcance, xq la
+firma cierra la sustitución por software pero no q alguien se salte el branch
+q consume el resultado.
+
+**OE1.** Tomé las 3 decisiones de diseño:
+
+- **Ed25519 con TweetNaCl.** Compila bare-metal sin un warning y con
+  `--gc-sections` queda en **6678 bytes**, o sea la mitad de lo q pesa
+  completo. Y el grueso de eso es el SHA-512 q Ed25519 usa por dentro, no
+  lógica de parseo, q es donde BootStomp encuentra las vulnerabilidades.
+- **Dos binarios separados**, no uno solo. Así el límite de confianza es real
+  y la demostración del ataque queda limpia: cambio un byte con dd y el
+  sistema se detiene.
+- **Llave pública embebida en Stage-1.** El argumento central: con hashes
+  golden el atacante gana cambiando los dos, pero con firma puede cambiar la
+  llave pública y no le sirve, xq necesita la privada q nunca entra al
+  dispositivo.
+
+Definí el formato de imagen (cabecera de 80 bytes) y escribí la herramienta
+de firma en Python. Probado de punta a punta: imagen intacta pasa, un byte
+cambiado se rechaza.
+
+**OE2, lo q más me llevó el día.**
+
+Escribí las pruebas unitarias. Las 4 pasan, y 2 dan valores exactos:
+BRANCH_TAKEN da 1000 clavado sobre 1000 iteraciones, y JUMP_INDIRECT da 1002,
+q son las 1000 llamadas más la entrada y salida de la función de prueba. Los
+otros 2 dan múltiplos limpios (5 loads y 2 stores por iteración) q es lo q
+produce -O0 con volatile.
+
+Agregué el test 36: U-mode intenta leer mhpmcounter5 y recibe instrucción
+ilegal. Con eso el activo A7 del modelo de amenazas queda verificado con
+prueba y no solo declarado.
+
+**Y lo del filtrado por modo fue el hallazgo más importante del día.**
+
+Primero intenté duplicar contadores: los mismos eventos con y sin filtro,
+para poder comparar. Los filtrados daban **cero**. Me puse a depurar y
+encontré q `riscv_pmu_update_event_map` se sale temprano si el evento ya está
+en la tabla hash. O sea q **QEMU mapea eventos a contadores uno a uno** y no
+se puede tener el mismo evento en dos contadores. Lo confirmé desmapeando el
+contador 5, y ahí el 9 empezó a contar.
+
+Eso es una limitación de QEMU upstream, no un error mío, y vale como hallazgo
+reportable.
+
+Entonces cambié el enfoque y puse MINH directamente en los 4 contadores de
+instrucciones. Los números:
+
+| Contador | Todos los modos | Solo U-mode | % |
+|---|---|---|---|
+| LOAD | 1132269 | 120226 | 10.6% |
+| STORE | 543810 | 67460 | 12.4% |
+| JUMP | 54255 | 8564 | 15.8% |
+| BRANCH | 148166 | 16555 | 11.2% |
+
+**Entre 84 y 89% de la señal era el propio crypto core midiéndose a sí
+mismo.** Si entreno el clasificador sin filtrar, 9 de cada 10 eventos son
+ruido de mi código de vigilancia. O sea q el filtrado no es un detalle, es lo
+q hace viable el OE3.
+
+Y conecta directo con Das: su crítica es q en sistemas reales no se puede
+atribuir los conteos al código q observás. Acá sí se puede y lo impone el
+hardware.
+
+PRIV_SWITCH y TRAP_TAKEN no cambiaron (270 y 135, sigue la relación 2:1), q
+es correcto xq esos eventos pasan EN la transición, no adentro de un modo.
+
+Cerré con la documentación del parche, 232 líneas. **OE2 queda completo**, y
+lo terminé 3 semanas antes de cuando mi cronograma decía q había q empezarlo.
+
