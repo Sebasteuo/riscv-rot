@@ -1078,6 +1078,26 @@ void user_entry(void)
         uart_puts("[USER] Survived: the write trapped, PMP config unchanged\n");
     }
 
+    /* ---- Test 36: U-mode cannot read the architectural counters ---- */
+    /*
+     * The event counters are an asset of the runtime attestation service:
+     * if U-mode could read them, a compromised system could learn what
+     * profile it needs to imitate in order to look nominal.
+     *
+     * mcounteren is deliberately left unset, so mhpmcounter5 (LOAD_RETIRED)
+     * is not delegated to U-mode. Reading it raises an illegal-instruction
+     * exception, the same way writing pmpcfg0 does in Test 33.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 36: Attempting to READ mhpmcounter5 from U-mode...\n");
+    uart_puts("[USER] (event counters must not be visible to U-mode)\n");
+    {
+        uint64_t v = 0;
+        asm volatile("csrr %0, 0xB05" : "=r"(v));
+        uart_puts("[USER] Survived: the read trapped, counters stay in M-mode\n");
+        (void)v;
+    }
+
     /* ---- Test 34: U-mode cannot read the Secure Storage MMIO (EK/SRK) ---- */
     /*
      * SRS-F-009: the EK and SRK live in the Secure Storage device at
