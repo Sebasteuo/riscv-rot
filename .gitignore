@@ -22,3 +22,4 @@ keys/
 stage1.elf
 stage2.img
 stage2.bin
+data/
