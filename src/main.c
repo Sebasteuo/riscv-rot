@@ -20,6 +20,7 @@
 #include "pcr.h"
 #include "keygen.h"
 #include "hpm.h"
+#include "attest.h"
 
 extern void switch_to_user(void);
 
@@ -60,6 +61,7 @@ void post_umode_report(void)
     /* Architectural event counters (CE-5600) */
     uart_puts("\n[MAIN] --- Architectural event counters ---\n");
     hpm_dump("final state");
+    attest_dump();
 
     uart_puts("\n==========================================\n");
     uart_puts("  ALL TESTS PASSED\n");
@@ -212,6 +214,9 @@ void main(void)
     uart_puts("\n");
     hpm_init();
     hpm_selftest();
+
+    /* Arm runtime sampling just before U-mode takes over */
+    attest_init();
 
     /* Step 8: drop to U-mode */
     switch_to_user();

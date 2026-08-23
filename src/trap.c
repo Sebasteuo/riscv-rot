@@ -26,6 +26,7 @@
 #include "keygen.h"
 #include "secret.h"
 #include "timer.h"
+#include "attest.h"
 
 extern void post_umode_report(void);
 
@@ -943,6 +944,14 @@ static void process_shared_command(void)
      * (command response time <= 100ms).
      */
     uint64_t cmd_start, cmd_end;
+
+    /*
+     * Sample the counters before doing any work. The deltas cover the
+     * U-mode execution that led up to this command, which is what the
+     * runtime attestation service observes.
+     */
+    attest_sample(cmd);
+
     cmd_start = timer_now();
 
     /*
