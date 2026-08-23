@@ -26,7 +26,7 @@ en 2 minutos y medio, q es poquísimo tiempo.
 
 Subí el video del anteproyecto. Entregado a tiempo.
 
-### Martes 19
+### Miércoles 19
 
 Me metí de lleno en la Etapa 1, q es la revisión de literatura. Junté como
 120 fuentes y las organicé en 4 ejes: Root of Trust y aislamiento en RISC-V,
@@ -42,7 +42,7 @@ y usando eventos arquitecturales en vez de microarquitecturales.
 
 Mejor darme cuenta ahora que en la defensa.
 
-### Miércoles 20
+### Jueves 20 · reunión con González y lectura de papers
 
 Hablé con el profe González, q es mi contraparte. Salieron varias cosas:
 
@@ -75,7 +75,7 @@ leí y esto es lo q saqué:
   y encima depende de OP-TEE con sistema operativo. O sea que mi plataforma
   está bastante más adelante de lo q pensaba.
 
-### Jueves 21
+### Jueves 20 (tarde) · volver a tocar el código
 
 Día de volver a tocar el código después de casi 3 meses.
 
@@ -134,7 +134,7 @@ CE-1114. Así queda claro q es del curso pasado y qué es del TFG. La subí a
 GitHub y a GitLab. También limpié el .gitignore xq tenía cosas repetidas y
 me estaban quedando logs sueltos.
 
-### Jueves 21 (parte 2, ya de madrugada)
+### Jueves 20 (noche) · arranque del OE2, hasta la madrugada
 
 Arranqué el OE2 en serio. Primero armé el documento de selección de
 contadores, xq no quería ponerme a instrumentar sin saber qué iba a contar
@@ -196,7 +196,7 @@ bien.
 También abrí la rama `tfg-counters` en qemu-ccore para q los cambios míos
 queden separados del fork.
 
-### Viernes 22
+### Viernes 21 (parte 1) · los 6 contadores completos
 
 Terminé de instrumentar los 6 contadores del núcleo mínimo. Quedaron todos.
 
@@ -285,7 +285,7 @@ reproducible y no quede solo como una tabla en el informe.
 **Falta para cerrar el OE2:** pruebas unitarias por contador (correr una
 carga conocida y verificar q da el número esperado) y documentar el parche.
 
-### Viernes 22 (continuación, tarde)
+### Viernes 21 (parte 2) · cierre del OE2 y arranque del OE1
 
 Día largo pero cerré el OE2 completo y avancé bastante en los otros dos.
 
