@@ -1,5 +1,6 @@
 #include "client_app.h"
 #include "uart.h"
+#include "pmp.h"
 
 /*
  * Working set. Sized so a full traversal is measurable but the whole
@@ -9,6 +10,37 @@
 
 static volatile uint64_t buf[BUF_WORDS];
 static volatile uint64_t sink;
+
+static volatile uint32_t *shared =
+    (volatile uint32_t *)SHARED_BASE;
+static volatile uint8_t *shared_data =
+    (volatile uint8_t *)(SHARED_BASE + SHARED_OFF_DATA);
+
+/*
+ * Open a measurement window. The nonce would come from the external
+ * verifier in a real deployment; here it is derived from the window
+ * index so runs stay reproducible while each window still carries a
+ * distinct value.
+ */
+static void window_open(uint32_t seq)
+{
+    uint32_t i;
+
+    for (i = 0; i < ATTEST_NONCE_SIZE; i++) {
+        shared_data[i] = (uint8_t)(seq * 31 + i);
+    }
+
+    shared[SHARED_OFF_CMD / 4] = SHARED_CMD_ATTEST_BEGIN;
+    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE;
+    asm volatile("ecall");
+}
+
+static void window_close(void)
+{
+    shared[SHARED_OFF_CMD / 4] = SHARED_CMD_ATTEST_END;
+    shared[SHARED_OFF_SIZE / 4] = 0;
+    asm volatile("ecall");
+}
 
 /* ---- WALK: sequential traversal, loads dominate ---- */
 static uint64_t walk(uint32_t intensity)
@@ -146,7 +178,9 @@ void client_nominal_session(void)
         uart_put_dec((uint64_t)plan[i][1]);
         uart_puts("\n");
 
+        window_open(i);
         client_run((client_workload_t)plan[i][0], plan[i][1]);
+        window_close();
     }
 
     uart_puts("[APP] === session done ===\n");

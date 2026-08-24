@@ -282,6 +282,30 @@
 #define SHARED_CMD_CHAIN_ADD_VENDOR  0x0C  /* register a vendor key */
 #define SHARED_CMD_CHAIN_VERIFY      0x0D  /* verify a signed component */
 
+/*
+ * Runtime attestation (OE3).
+ *
+ * ATTEST_BEGIN opens a measurement window and carries a nonce supplied
+ * by the external verifier. ATTEST_END closes it and returns the
+ * counter deltas accumulated in between, together with the nonce and
+ * the PCR state, signed by the crypto core.
+ *
+ * The nonce is what makes the response fresh: a replayed report from a
+ * healthy moment carries the wrong nonce and is rejected. And if the
+ * device does not answer within the verifier's timeout, it is treated
+ * as compromised, which covers the client that simply never calls.
+ *
+ * The crypto core does not decide whether the system is healthy. It
+ * guarantees that the metrics are trustworthy: collected where they
+ * cannot be forged, bounded by a defined window, and delivered signed.
+ * The verdict belongs to the external verifier.
+ */
+#define SHARED_CMD_ATTEST_BEGIN   0x0E  /* open a window, carries a nonce */
+#define SHARED_CMD_ATTEST_END     0x0F  /* close it and return the report */
+
+/* Nonce size, in bytes, carried in the DATA area of ATTEST_BEGIN */
+#define ATTEST_NONCE_SIZE  16
+
 #define CHAIN_MAX_VENDORS            4     /* max vendor keys */
 
 #define SHARED_STATUS_VENDOR_OK      0x13  /* vendor key registered */

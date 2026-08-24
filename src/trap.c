@@ -928,6 +928,78 @@ static void process_chain_verify(volatile uint32_t *shared)
     }
 }
 
+/* -------------------------------------------------------------------------
+ * Runtime attestation (OE3)
+ * ------------------------------------------------------------------------- */
+
+static void process_attest_begin(volatile uint32_t *shared)
+{
+    const uint8_t *data = (const uint8_t *)(SHARED_BASE + SHARED_OFF_DATA);
+
+    /*
+     * The nonce comes from the external verifier. It is what makes the
+     * eventual report fresh: a replayed report carries the wrong nonce.
+     */
+    attest_window_open(data, ATTEST_NONCE_SIZE);
+
+    uart_puts("[ATT] Window open, nonce ");
+    {
+        int i;
+        for (i = 0; i < 4; i++) {
+            uart_put_hex(data[i]);
+        }
+    }
+    uart_puts("...\n");
+
+    shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_OK;
+}
+
+static void process_attest_end(volatile uint32_t *shared)
+{
+    uint64_t delta[ATTEST_FEATURES];
+    uint8_t *data = (uint8_t *)(SHARED_BASE + SHARED_OFF_DATA);
+    const uint8_t *nonce;
+    int i, b;
+
+    if (!attest_window_close(delta)) {
+        uart_puts("[ATT] No window open\n");
+        shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_ERROR;
+        return;
+    }
+
+    /*
+     * Report layout in the shared area:
+     *   0  .. 15   nonce, echoed back so the verifier can match it
+     *   16 .. 63   six counter deltas, big-endian, 8 bytes each
+     *
+     * The signature over this block is added once the report format is
+     * final. Until then the layout is what the verifier parses.
+     */
+    nonce = attest_window_nonce();
+    for (i = 0; i < ATTEST_NONCE_SIZE; i++) {
+        data[i] = nonce[i];
+    }
+
+    for (i = 0; i < ATTEST_FEATURES; i++) {
+        for (b = 0; b < 8; b++) {
+            data[ATTEST_NONCE_SIZE + i * 8 + b] =
+                (uint8_t)((delta[i] >> ((7 - b) * 8)) & 0xFF);
+        }
+    }
+
+    uart_puts("[ATT] Window closed: ");
+    for (i = 0; i < ATTEST_FEATURES; i++) {
+        if (i) {
+            uart_puts(",");
+        }
+        uart_put_dec(delta[i]);
+    }
+    uart_puts("\n");
+
+    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8;
+    shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_OK;
+}
+
 static void process_shared_command(void)
 {
     volatile uint32_t *shared = (volatile uint32_t *)SHARED_BASE;
@@ -1078,6 +1150,21 @@ static void process_shared_command(void)
     case SHARED_CMD_CHAIN_VERIFY:
         if (check_session_token(shared)) return;
         process_chain_verify(shared);
+        break;
+
+    /*
+     * Attestation commands do not require a session token. The window
+     * is opened on behalf of an external verifier, not by an
+     * authenticated client: requiring the monitored system to
+     * authenticate before it can be observed would invert the trust
+     * relationship. Freshness comes from the nonce instead.
+     */
+    case SHARED_CMD_ATTEST_BEGIN:
+        process_attest_begin(shared);
+        break;
+
+    case SHARED_CMD_ATTEST_END:
+        process_attest_end(shared);
         break;
 
     case SHARED_CMD_QUOTE:

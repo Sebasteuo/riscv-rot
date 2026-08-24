@@ -1,5 +1,6 @@
 #include "attest.h"
 #include "uart.h"
+#include "pmp.h"
 
 /*
  * Counter indices in the order they appear in a sample. Kept as a table
@@ -23,6 +24,11 @@ static attest_sample_t samples[ATTEST_MAX_SAMPLES];
 static uint64_t baseline[ATTEST_FEATURES];
 static uint32_t sample_count;
 static uint32_t dropped;
+
+/* Measurement window state */
+static uint64_t window_base[ATTEST_FEATURES];
+static uint8_t  window_nonce[ATTEST_NONCE_SIZE];
+static int      window_open;
 static uint32_t dropped;
 
 static void read_all(uint64_t out[ATTEST_FEATURES])
@@ -71,6 +77,47 @@ void attest_sample(uint32_t cmd)
     for (i = 0; i < ATTEST_FEATURES; i++) {
         baseline[i] = now[i];
     }
+}
+
+void attest_window_open(const uint8_t *nonce, uint32_t nonce_len)
+{
+    uint32_t i;
+
+    read_all(window_base);
+
+    for (i = 0; i < ATTEST_NONCE_SIZE; i++) {
+        window_nonce[i] = (i < nonce_len) ? nonce[i] : 0;
+    }
+
+    window_open = 1;
+}
+
+int attest_window_close(uint64_t out[ATTEST_FEATURES])
+{
+    uint64_t now[ATTEST_FEATURES];
+    int i;
+
+    if (!window_open) {
+        return 0;
+    }
+
+    read_all(now);
+    for (i = 0; i < ATTEST_FEATURES; i++) {
+        out[i] = now[i] - window_base[i];
+    }
+
+    window_open = 0;
+    return 1;
+}
+
+int attest_window_active(void)
+{
+    return window_open;
+}
+
+const uint8_t *attest_window_nonce(void)
+{
+    return window_nonce;
 }
 
 uint32_t attest_dropped(void)

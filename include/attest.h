@@ -59,6 +59,25 @@ uint32_t attest_count(void);
 /* Read one sample. Returns 0 if the index is out of range. */
 const attest_sample_t *attest_get(uint32_t index);
 
+/*
+ * Measurement window (OE3).
+ *
+ * attest_window_open() latches the counters and stores the nonce that
+ * came with the request. attest_window_close() reports the deltas
+ * accumulated since. Whatever the client did in between falls inside a
+ * single window, even if other commands were processed meanwhile.
+ */
+void attest_window_open(const uint8_t *nonce, uint32_t nonce_len);
+
+/* Returns 0 if no window is open. Otherwise fills out[] and returns 1. */
+int attest_window_close(uint64_t out[ATTEST_FEATURES]);
+
+/* Whether a window is currently open */
+int attest_window_active(void);
+
+/* The nonce of the current or last window */
+const uint8_t *attest_window_nonce(void);
+
 /* Print every stored sample over UART, one row per sample */
 void attest_dump(void);
 
