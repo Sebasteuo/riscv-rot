@@ -49,10 +49,13 @@ SECTIONS
         __umode_start = .;
         build/user.o(.text .text.*)
         build/tpm2_api.o(.text .text.*)
+        build/client_app.o(.text .text.*)
         build/user.o(.rodata .rodata.*)
         build/tpm2_api.o(.rodata .rodata.*)
+        build/client_app.o(.rodata .rodata.*)
         build/user.o(.data .data.*)
         build/tpm2_api.o(.data .data.*)
+        build/client_app.o(.data .data.*)
         . = ALIGN(8);
         __umode_data_end = .;
     } > RAM
@@ -61,6 +64,7 @@ SECTIONS
         __umode_bss_start = .;
         build/user.o(.bss .bss.* COMMON)
         build/tpm2_api.o(.bss .bss.* COMMON)
+        build/client_app.o(.bss .bss.* COMMON)
         *(.umode_bss)
         . = ALIGN(8);
         __umode_bss_end = .;

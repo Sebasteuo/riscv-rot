@@ -65,8 +65,6 @@ void attest_sample(uint32_t cmd)
         sample_count++;
     } else {
         dropped++;
-    } else {
-        dropped++;
     }
 
     /* The baseline moves regardless, so windows stay contiguous */
@@ -80,10 +78,6 @@ uint32_t attest_dropped(void)
     return dropped;
 }
 
-uint32_t attest_dropped(void)
-{
-    return dropped;
-}
 
 uint32_t attest_count(void)
 {

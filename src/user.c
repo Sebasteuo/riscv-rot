@@ -26,6 +26,7 @@
 #include "sha256.h"
 #include "keygen.h"
 #include "tpm2_api.h"
+#include "client_app.h"
 
 extern void uart_puts(const char *s);
 extern void uart_put_hex(uint64_t val);
@@ -1164,6 +1165,14 @@ void user_entry(void)
      * inside tpm2_api_demo() uses only the TPM2_* API (no raw mailbox writes)
      * and ends with TPM2_Shutdown(), which performs the handback to M-mode.
      * Control does not return from it. */
+    /*
+     * Client application session. This is the workload the root of trust
+     * attests, kept separate from the firmware test suite. It runs before
+     * tpm2_api_demo() because that call does not return: it ends with
+     * TPM2_Shutdown(), which hands control back to M-mode.
+     */
+    client_nominal_session();
+
     tpm2_api_demo();
 }
 

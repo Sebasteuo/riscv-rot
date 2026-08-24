@@ -66,7 +66,8 @@ OBJS = \
   $(BUILD)/tpm2_api.o \
   $(BUILD)/hpm.o \
   $(BUILD)/hpm_test.o \
-  $(BUILD)/attest.o
+  $(BUILD)/attest.o \
+  $(BUILD)/client_app.o
 
 all: $(TARGET).elf
 
