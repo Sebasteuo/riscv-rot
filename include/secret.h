@@ -3,7 +3,7 @@
 
 /*
  * __secret places a variable in the .secret section, which the linker
- * maps to 0x80100000 (the PMP-protected secret zone). Variables marked
+ * maps to 0x80200000 (the PMP-protected secret zone). Variables marked
  * this way live in RAM that U-mode cannot read or write, because PMP
  * region 0 blocks that address range. The section is zeroed at boot by
  * start.S, so all __secret variables start at zero.

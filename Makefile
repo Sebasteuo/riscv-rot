@@ -67,9 +67,205 @@ OBJS = \
   $(BUILD)/hpm.o \
   $(BUILD)/hpm_test.o \
   $(BUILD)/attest.o \
-  $(BUILD)/client_app.o
+  $(BUILD)/client_app.o \
+  $(BUILD)/board.o \
+  $(BUILD)/beebsc.o \
+  $(BUILD)/aha_mont64__mont64.o \
+  $(BUILD)/crc32__crc_32.o \
+  $(BUILD)/depthconv__depthconv.o \
+  $(BUILD)/edn__libedn.o \
+  $(BUILD)/huffbench__libhuffbench.o \
+  $(BUILD)/matmult_int__matmult-int.o \
+  $(BUILD)/md5sum__md5.o \
+  $(BUILD)/nettle_aes__nettle-aes.o \
+  $(BUILD)/nettle_sha256__nettle-sha256.o \
+  $(BUILD)/nsichneu__libnsichneu.o \
+  $(BUILD)/picojpeg__libpicojpeg.o \
+  $(BUILD)/picojpeg__picojpeg_test.o \
+  $(BUILD)/qrduino__qrencode.o \
+  $(BUILD)/qrduino__qrframe.o \
+  $(BUILD)/qrduino__qrtest.o \
+  $(BUILD)/sglib_combined__combined.o \
+  $(BUILD)/slre__libslre.o \
+  $(BUILD)/statemate__libstatemate.o \
+  $(BUILD)/tarfind__tarfind.o \
+  $(BUILD)/ud__libud.o \
+  $(BUILD)/wikisort__libwikisort.o \
+  $(BUILD)/xgboost__testbench.o \
+  $(BUILD)/xgboost__xgboost.o
 
 all: $(TARGET).elf
+
+$(BUILD)/board.o: lib/embench/board.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -c $< -o $@
+
+$(BUILD)/beebsc.o: lib/embench/beebsc.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -c $< -o $@
+
+$(BUILD)/aha_mont64__mont64.o: src/bench/aha_mont64__mont64.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_aha_mont64 -Dinitialise_benchmark=init_aha_mont64 \
+	  -Dverify_benchmark=verify_aha_mont64 -Dwarm_caches=warm_aha_mont64 \
+	  -Dbenchmark_body=body_aha_mont64 \
+	  -c $< -o $@
+
+$(BUILD)/crc32__crc_32.o: src/bench/crc32__crc_32.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_crc32 -Dinitialise_benchmark=init_crc32 \
+	  -Dverify_benchmark=verify_crc32 -Dwarm_caches=warm_crc32 \
+	  -Dbenchmark_body=body_crc32 \
+	  -c $< -o $@
+
+$(BUILD)/depthconv__depthconv.o: src/bench/depthconv__depthconv.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_depthconv -Dinitialise_benchmark=init_depthconv \
+	  -Dverify_benchmark=verify_depthconv -Dwarm_caches=warm_depthconv \
+	  -Dbenchmark_body=body_depthconv \
+	  -c $< -o $@
+
+$(BUILD)/edn__libedn.o: src/bench/edn__libedn.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_edn -Dinitialise_benchmark=init_edn \
+	  -Dverify_benchmark=verify_edn -Dwarm_caches=warm_edn \
+	  -Dbenchmark_body=body_edn \
+	  -c $< -o $@
+
+$(BUILD)/huffbench__libhuffbench.o: src/bench/huffbench__libhuffbench.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_huffbench -Dinitialise_benchmark=init_huffbench \
+	  -Dverify_benchmark=verify_huffbench -Dwarm_caches=warm_huffbench \
+	  -Dbenchmark_body=body_huffbench \
+	  -c $< -o $@
+
+$(BUILD)/matmult_int__matmult-int.o: src/bench/matmult_int__matmult-int.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_matmult_int -Dinitialise_benchmark=init_matmult_int \
+	  -Dverify_benchmark=verify_matmult_int -Dwarm_caches=warm_matmult_int \
+	  -Dbenchmark_body=body_matmult_int \
+	  -c $< -o $@
+
+$(BUILD)/md5sum__md5.o: src/bench/md5sum__md5.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_md5sum -Dinitialise_benchmark=init_md5sum \
+	  -Dverify_benchmark=verify_md5sum -Dwarm_caches=warm_md5sum \
+	  -Dbenchmark_body=body_md5sum \
+	  -c $< -o $@
+
+$(BUILD)/nettle_aes__nettle-aes.o: src/bench/nettle_aes__nettle-aes.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_nettle_aes -Dinitialise_benchmark=init_nettle_aes \
+	  -Dverify_benchmark=verify_nettle_aes -Dwarm_caches=warm_nettle_aes \
+	  -Dbenchmark_body=body_nettle_aes \
+	  -c $< -o $@
+
+$(BUILD)/nettle_sha256__nettle-sha256.o: src/bench/nettle_sha256__nettle-sha256.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_nettle_sha256 -Dinitialise_benchmark=init_nettle_sha256 \
+	  -Dverify_benchmark=verify_nettle_sha256 -Dwarm_caches=warm_nettle_sha256 \
+	  -Dbenchmark_body=body_nettle_sha256 \
+	  -Dsha256_init=nettle_sha256_init \
+	  -Dsha256_update=nettle_sha256_update \
+	  -Dsha256_digest=nettle_sha256_digest \
+	  -c $< -o $@
+
+$(BUILD)/nsichneu__libnsichneu.o: src/bench/nsichneu__libnsichneu.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_nsichneu -Dinitialise_benchmark=init_nsichneu \
+	  -Dverify_benchmark=verify_nsichneu -Dwarm_caches=warm_nsichneu \
+	  -Dbenchmark_body=body_nsichneu \
+	  -c $< -o $@
+
+$(BUILD)/picojpeg__libpicojpeg.o: src/bench/picojpeg__libpicojpeg.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_picojpeg -Dinitialise_benchmark=init_picojpeg \
+	  -Dverify_benchmark=verify_picojpeg -Dwarm_caches=warm_picojpeg \
+	  -Dbenchmark_body=body_picojpeg \
+	  -c $< -o $@
+
+$(BUILD)/picojpeg__picojpeg_test.o: src/bench/picojpeg__picojpeg_test.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_picojpeg -Dinitialise_benchmark=init_picojpeg \
+	  -Dverify_benchmark=verify_picojpeg -Dwarm_caches=warm_picojpeg \
+	  -Dbenchmark_body=body_picojpeg \
+	  -c $< -o $@
+
+$(BUILD)/qrduino__qrencode.o: src/bench/qrduino__qrencode.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_qrduino -Dinitialise_benchmark=init_qrduino \
+	  -Dverify_benchmark=verify_qrduino -Dwarm_caches=warm_qrduino \
+	  -Dbenchmark_body=body_qrduino \
+	  -c $< -o $@
+
+$(BUILD)/qrduino__qrframe.o: src/bench/qrduino__qrframe.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_qrduino -Dinitialise_benchmark=init_qrduino \
+	  -Dverify_benchmark=verify_qrduino -Dwarm_caches=warm_qrduino \
+	  -Dbenchmark_body=body_qrduino \
+	  -c $< -o $@
+
+$(BUILD)/qrduino__qrtest.o: src/bench/qrduino__qrtest.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_qrduino -Dinitialise_benchmark=init_qrduino \
+	  -Dverify_benchmark=verify_qrduino -Dwarm_caches=warm_qrduino \
+	  -Dbenchmark_body=body_qrduino \
+	  -c $< -o $@
+
+$(BUILD)/sglib_combined__combined.o: src/bench/sglib_combined__combined.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_sglib_combined -Dinitialise_benchmark=init_sglib_combined \
+	  -Dverify_benchmark=verify_sglib_combined -Dwarm_caches=warm_sglib_combined \
+	  -Dbenchmark_body=body_sglib_combined \
+	  -c $< -o $@
+
+$(BUILD)/slre__libslre.o: src/bench/slre__libslre.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_slre -Dinitialise_benchmark=init_slre \
+	  -Dverify_benchmark=verify_slre -Dwarm_caches=warm_slre \
+	  -Dbenchmark_body=body_slre \
+	  -c $< -o $@
+
+$(BUILD)/statemate__libstatemate.o: src/bench/statemate__libstatemate.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_statemate -Dinitialise_benchmark=init_statemate \
+	  -Dverify_benchmark=verify_statemate -Dwarm_caches=warm_statemate \
+	  -Dbenchmark_body=body_statemate \
+	  -c $< -o $@
+
+$(BUILD)/tarfind__tarfind.o: src/bench/tarfind__tarfind.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_tarfind -Dinitialise_benchmark=init_tarfind \
+	  -Dverify_benchmark=verify_tarfind -Dwarm_caches=warm_tarfind \
+	  -Dbenchmark_body=body_tarfind \
+	  -c $< -o $@
+
+$(BUILD)/ud__libud.o: src/bench/ud__libud.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_ud -Dinitialise_benchmark=init_ud \
+	  -Dverify_benchmark=verify_ud -Dwarm_caches=warm_ud \
+	  -Dbenchmark_body=body_ud \
+	  -c $< -o $@
+
+$(BUILD)/wikisort__libwikisort.o: src/bench/wikisort__libwikisort.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_wikisort -Dinitialise_benchmark=init_wikisort \
+	  -Dverify_benchmark=verify_wikisort -Dwarm_caches=warm_wikisort \
+	  -Dbenchmark_body=body_wikisort \
+	  -c $< -o $@
+
+$(BUILD)/xgboost__testbench.o: src/bench/xgboost__testbench.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_xgboost -Dinitialise_benchmark=init_xgboost \
+	  -Dverify_benchmark=verify_xgboost -Dwarm_caches=warm_xgboost \
+	  -Dbenchmark_body=body_xgboost \
+	  -c $< -o $@
+
+$(BUILD)/xgboost__xgboost.o: src/bench/xgboost__xgboost.c | $(BUILD)
+	$(CC) $(CFLAGS) -Ilib/embench -Isrc/bench -DGLOBAL_SCALE_FACTOR=1 \
+	  -Dbenchmark=bench_xgboost -Dinitialise_benchmark=init_xgboost \
+	  -Dverify_benchmark=verify_xgboost -Dwarm_caches=warm_xgboost \
+	  -Dbenchmark_body=body_xgboost \
+	  -c $< -o $@
+
 
 $(BUILD):
 	mkdir -p $(BUILD)

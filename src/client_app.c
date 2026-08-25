@@ -1,4 +1,5 @@
 #include "client_app.h"
+#include <stddef.h>
 #include "uart.h"
 #include "pmp.h"
 
@@ -120,6 +121,26 @@ static uint64_t transform(uint32_t intensity)
     return buf[0];
 }
 
+/*
+ * Window hooks for Embench.
+ *
+ * The suite calls start_trigger() and stop_trigger() around the region
+ * it wants measured. Those land here, so an attestation window covers
+ * exactly the benchmark body: no setup, no verification, no printing.
+ */
+static uint32_t bench_seq;
+
+void bench_window_open(void)
+{
+    window_open(bench_seq);
+}
+
+void bench_window_close(void)
+{
+    window_close();
+    bench_seq++;
+}
+
 uint64_t client_run(client_workload_t which, uint32_t intensity)
 {
     uint64_t r = 0;
@@ -139,6 +160,183 @@ uint64_t client_run(client_workload_t which, uint32_t intensity)
 static const char *workload_name[CLIENT_WORKLOAD_COUNT] = {
     "walk", "search", "nested", "transform",
 };
+
+/* Provided by the Embench board support */
+extern void initialise_board(void);
+extern void start_trigger(void);
+extern void stop_trigger(void);
+extern void init_heap_beebs(void *heap, size_t heap_size);
+
+/*
+ * Heap for the benchmarks that allocate. BEEBS brings its own
+ * allocator but expects the platform to hand it a block: without this
+ * call malloc_beebs returns NULL and the benchmarks dereference it.
+ *
+ * Sized to fit the largest allocation in the suite while staying
+ * inside the U-mode region.
+ */
+#define BENCH_HEAP_SIZE (4 * 1024)
+static uint8_t bench_heap[BENCH_HEAP_SIZE];
+
+/*
+ * Each benchmark is compiled with its entry points renamed, so all
+ * nineteen can live in one binary and run one after another. The
+ * renaming happens on the compiler command line; the sources are
+ * unmodified.
+ */
+extern void init_aha_mont64(void);
+extern void warm_aha_mont64(int);
+extern int  bench_aha_mont64(void);
+extern int  verify_aha_mont64(int);
+extern void init_crc32(void);
+extern void warm_crc32(int);
+extern int  bench_crc32(void);
+extern int  verify_crc32(int);
+extern void init_depthconv(void);
+extern void warm_depthconv(int);
+extern int  bench_depthconv(void);
+extern int  verify_depthconv(int);
+extern void init_edn(void);
+extern void warm_edn(int);
+extern int  bench_edn(void);
+extern int  verify_edn(int);
+extern void init_huffbench(void);
+extern void warm_huffbench(int);
+extern int  bench_huffbench(void);
+extern int  verify_huffbench(int);
+extern void init_matmult_int(void);
+extern void warm_matmult_int(int);
+extern int  bench_matmult_int(void);
+extern int  verify_matmult_int(int);
+extern void init_md5sum(void);
+extern void warm_md5sum(int);
+extern int  bench_md5sum(void);
+extern int  verify_md5sum(int);
+extern void init_nettle_aes(void);
+extern void warm_nettle_aes(int);
+extern int  bench_nettle_aes(void);
+extern int  verify_nettle_aes(int);
+extern void init_nettle_sha256(void);
+extern void warm_nettle_sha256(int);
+extern int  bench_nettle_sha256(void);
+extern int  verify_nettle_sha256(int);
+extern void init_nsichneu(void);
+extern void warm_nsichneu(int);
+extern int  bench_nsichneu(void);
+extern int  verify_nsichneu(int);
+extern void init_picojpeg(void);
+extern void warm_picojpeg(int);
+extern int  bench_picojpeg(void);
+extern int  verify_picojpeg(int);
+extern void init_qrduino(void);
+extern void warm_qrduino(int);
+extern int  bench_qrduino(void);
+extern int  verify_qrduino(int);
+extern void init_sglib_combined(void);
+extern void warm_sglib_combined(int);
+extern int  bench_sglib_combined(void);
+extern int  verify_sglib_combined(int);
+extern void init_slre(void);
+extern void warm_slre(int);
+extern int  bench_slre(void);
+extern int  verify_slre(int);
+extern void init_statemate(void);
+extern void warm_statemate(int);
+extern int  bench_statemate(void);
+extern int  verify_statemate(int);
+extern void init_tarfind(void);
+extern void warm_tarfind(int);
+extern int  bench_tarfind(void);
+extern int  verify_tarfind(int);
+extern void init_ud(void);
+extern void warm_ud(int);
+extern int  bench_ud(void);
+extern int  verify_ud(int);
+extern void init_wikisort(void);
+extern void warm_wikisort(int);
+extern int  bench_wikisort(void);
+extern int  verify_wikisort(int);
+extern void init_xgboost(void);
+extern void warm_xgboost(int);
+extern int  bench_xgboost(void);
+extern int  verify_xgboost(int);
+
+typedef struct {
+    const char *name;
+    void (*init)(void);
+    void (*warm)(int);
+    int  (*run)(void);
+    int  (*verify)(int);
+} bench_entry_t;
+
+static const bench_entry_t bench_table[] = {
+    { "aha-mont64", init_aha_mont64, warm_aha_mont64, bench_aha_mont64, verify_aha_mont64 },
+    { "crc32", init_crc32, warm_crc32, bench_crc32, verify_crc32 },
+    { "depthconv", init_depthconv, warm_depthconv, bench_depthconv, verify_depthconv },
+    { "edn", init_edn, warm_edn, bench_edn, verify_edn },
+    { "huffbench", init_huffbench, warm_huffbench, bench_huffbench, verify_huffbench },
+    { "matmult-int", init_matmult_int, warm_matmult_int, bench_matmult_int, verify_matmult_int },
+    { "md5sum", init_md5sum, warm_md5sum, bench_md5sum, verify_md5sum },
+    { "nettle-aes", init_nettle_aes, warm_nettle_aes, bench_nettle_aes, verify_nettle_aes },
+    { "nettle-sha256", init_nettle_sha256, warm_nettle_sha256, bench_nettle_sha256, verify_nettle_sha256 },
+    { "nsichneu", init_nsichneu, warm_nsichneu, bench_nsichneu, verify_nsichneu },
+    { "picojpeg", init_picojpeg, warm_picojpeg, bench_picojpeg, verify_picojpeg },
+    { "qrduino", init_qrduino, warm_qrduino, bench_qrduino, verify_qrduino },
+    { "sglib-combined", init_sglib_combined, warm_sglib_combined, bench_sglib_combined, verify_sglib_combined },
+    { "slre", init_slre, warm_slre, bench_slre, verify_slre },
+    { "statemate", init_statemate, warm_statemate, bench_statemate, verify_statemate },
+    { "tarfind", init_tarfind, warm_tarfind, bench_tarfind, verify_tarfind },
+    { "ud", init_ud, warm_ud, bench_ud, verify_ud },
+    { "wikisort", init_wikisort, warm_wikisort, bench_wikisort, verify_wikisort },
+    { "xgboost", init_xgboost, warm_xgboost, bench_xgboost, verify_xgboost },
+};
+
+#define BENCH_COUNT (sizeof(bench_table) / sizeof(bench_table[0]))
+
+void client_bench_session(void)
+{
+    uint32_t i;
+
+    uart_puts("\n[APP] === Embench workloads ===\n");
+    uart_puts("[APP] entrando a initialise_board\n");
+
+    initialise_board();
+    uart_puts("[APP] board ok, ahora heap\n");
+    init_heap_beebs(bench_heap, BENCH_HEAP_SIZE);
+    uart_puts("[APP] heap ok, al bucle\n");
+
+    for (i = 0; i < BENCH_COUNT; i++) {
+        int result, ok;
+
+        uart_puts("[APP] bench ");
+        uart_put_dec((uint64_t)i);
+        uart_puts("\n");
+
+        bench_table[i].init();
+
+        /*
+         * No cache warming: the emulator models no cache, so it would
+         * add work without changing what the counters observe.
+         */
+        bench_table[i].warm(0);
+
+        /*
+         * Embench leaves the triggers to the harness, so the window is
+         * opened here. It covers the benchmark body alone: not the
+         * setup, not the verification, not the printing.
+         */
+        start_trigger();
+        result = bench_table[i].run();
+        stop_trigger();
+
+        ok = bench_table[i].verify(result);
+        uart_puts("[APP]   verify: ");
+        uart_puts(ok ? "OK" : "FAILED");
+        uart_puts("\n");
+    }
+
+    uart_puts("[APP] === Embench done ===\n");
+}
 
 void client_nominal_session(void)
 {

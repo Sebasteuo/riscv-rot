@@ -16,7 +16,7 @@
  *   3. Clears the BSS section. This is the memory area where global
  *      variables without an initial value live. The C standard says
  *      they must start at zero, so we fill that area with zeros
- *   4. Clears the .secret section at 0x80100000, where the protected
+ *   4. Clears the .secret section at 0x80200000, where the protected
  *      M-mode state lives (PCR bank, auth and session state). Same
  *      zero guarantee as BSS, but this area sits in its own PMP
  *      protected region, so it needs its own loop
@@ -138,7 +138,7 @@ bss_clear:
 
 bss_done:
     /*
-     * Clear the .secret section (M-mode protected state at 0x80100000).
+     * Clear the .secret section (M-mode protected state at 0x80200000).
      * Same idea as the BSS clear: these variables must start at zero,
      * and bare-metal RAM is not guaranteed to be zero.
      */

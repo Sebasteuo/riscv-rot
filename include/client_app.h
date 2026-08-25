@@ -48,4 +48,12 @@ uint64_t client_run(client_workload_t which, uint32_t intensity);
  */
 void client_nominal_session(void);
 
+/*
+ * Run the Embench workloads, each inside its own attestation window.
+ * Unlike the hand-written workloads above, these come from a standard
+ * benchmark suite for deeply embedded systems and were not chosen or
+ * shaped by this project.
+ */
+void client_bench_session(void);
+
 #endif /* CLIENT_APP_H */

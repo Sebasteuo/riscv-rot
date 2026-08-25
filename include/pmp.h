@@ -46,7 +46,7 @@
  * 0x10000000  UART (serial port)
  * 0x10200000  Secure Storage MMIO device (inside custom QEMU)
  * 0x80000000  Firmware code (.text, .rodata, .data, .bss, .stack)
- * 0x80100000  Secret zone (4KB, crypto keys in RAM)
+ * 0x80200000  Secret zone (4KB, crypto keys in RAM)
  * 0x80200000  U-mode code
  * 0x80300000  Shared memory zone (4KB, U-mode writes, M-mode reads)
  *
@@ -55,7 +55,7 @@
  * core to process it. The core reads from there, hashes it, and
  * extends the result into a PCR.
  * ------------------------------------------------------------------------- */
-#define SECRET_BASE  0x80100000UL
+#define SECRET_BASE  0x80200000UL
 #define SECRET_SIZE  0x1000UL       /* 4KB */
 
 #define USER_BASE    0x80200000UL
