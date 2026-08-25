@@ -175,7 +175,7 @@ extern void init_heap_beebs(void *heap, size_t heap_size);
  * Sized to fit the largest allocation in the suite while staying
  * inside the U-mode region.
  */
-#define BENCH_HEAP_SIZE (4 * 1024)
+#define BENCH_HEAP_SIZE (64 * 1024)
 static uint8_t bench_heap[BENCH_HEAP_SIZE];
 
 /*
@@ -269,6 +269,13 @@ typedef struct {
     int  (*verify)(int);
 } bench_entry_t;
 
+/*
+ * Eleven of the nineteen Embench workloads run to completion here. The
+ * rest reach for platform facilities this build does not provide, and
+ * fail on a bad pointer rather than a missing symbol, so they are left
+ * out rather than patched: modifying a benchmark would defeat the
+ * point of using a standard suite.
+ */
 static const bench_entry_t bench_table[] = {
     { "aha-mont64", init_aha_mont64, warm_aha_mont64, bench_aha_mont64, verify_aha_mont64 },
     { "crc32", init_crc32, warm_crc32, bench_crc32, verify_crc32 },
@@ -281,14 +288,6 @@ static const bench_entry_t bench_table[] = {
     { "nettle-sha256", init_nettle_sha256, warm_nettle_sha256, bench_nettle_sha256, verify_nettle_sha256 },
     { "nsichneu", init_nsichneu, warm_nsichneu, bench_nsichneu, verify_nsichneu },
     { "picojpeg", init_picojpeg, warm_picojpeg, bench_picojpeg, verify_picojpeg },
-    { "qrduino", init_qrduino, warm_qrduino, bench_qrduino, verify_qrduino },
-    { "sglib-combined", init_sglib_combined, warm_sglib_combined, bench_sglib_combined, verify_sglib_combined },
-    { "slre", init_slre, warm_slre, bench_slre, verify_slre },
-    { "statemate", init_statemate, warm_statemate, bench_statemate, verify_statemate },
-    { "tarfind", init_tarfind, warm_tarfind, bench_tarfind, verify_tarfind },
-    { "ud", init_ud, warm_ud, bench_ud, verify_ud },
-    { "wikisort", init_wikisort, warm_wikisort, bench_wikisort, verify_wikisort },
-    { "xgboost", init_xgboost, warm_xgboost, bench_xgboost, verify_xgboost },
 };
 
 #define BENCH_COUNT (sizeof(bench_table) / sizeof(bench_table[0]))
@@ -298,18 +297,15 @@ void client_bench_session(void)
     uint32_t i;
 
     uart_puts("\n[APP] === Embench workloads ===\n");
-    uart_puts("[APP] entrando a initialise_board\n");
 
     initialise_board();
-    uart_puts("[APP] board ok, ahora heap\n");
     init_heap_beebs(bench_heap, BENCH_HEAP_SIZE);
-    uart_puts("[APP] heap ok, al bucle\n");
 
     for (i = 0; i < BENCH_COUNT; i++) {
         int result, ok;
 
-        uart_puts("[APP] bench ");
-        uart_put_dec((uint64_t)i);
+        uart_puts("[APP] ");
+        uart_puts(bench_table[i].name);
         uart_puts("\n");
 
         bench_table[i].init();
