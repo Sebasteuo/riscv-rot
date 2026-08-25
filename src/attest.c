@@ -29,6 +29,7 @@ static uint32_t dropped;
 static uint64_t window_base[ATTEST_FEATURES];
 static uint8_t  window_nonce[ATTEST_NONCE_SIZE];
 static int      window_open;
+static uint32_t window_app;
 static uint32_t dropped;
 
 static void read_all(uint64_t out[ATTEST_FEATURES])
@@ -108,6 +109,16 @@ int attest_window_close(uint64_t out[ATTEST_FEATURES])
 
     window_open = 0;
     return 1;
+}
+
+void attest_set_app(uint32_t app_id)
+{
+    window_app = app_id;
+}
+
+uint32_t attest_get_app(void)
+{
+    return window_app;
 }
 
 int attest_window_active(void)

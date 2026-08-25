@@ -72,6 +72,10 @@ void attest_window_open(const uint8_t *nonce, uint32_t nonce_len);
 /* Returns 0 if no window is open. Otherwise fills out[] and returns 1. */
 int attest_window_close(uint64_t out[ATTEST_FEATURES]);
 
+/* Which application the challenge says is being measured */
+void attest_set_app(uint32_t app_id);
+uint32_t attest_get_app(void);
+
 /* Whether a window is currently open */
 int attest_window_active(void);
 

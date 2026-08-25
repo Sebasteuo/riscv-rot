@@ -69,6 +69,7 @@ OBJS = \
   $(BUILD)/attest.o \
   $(BUILD)/client_app.o \
   $(BUILD)/attack.o \
+  $(BUILD)/profile.o \
   $(BUILD)/board.o \
   $(BUILD)/beebsc.o \
   $(BUILD)/aha_mont64__mont64.o \

@@ -23,7 +23,7 @@ static volatile uint8_t *shared_data =
  * index so runs stay reproducible while each window still carries a
  * distinct value.
  */
-static void window_open(uint32_t seq)
+static void window_open_app(uint32_t seq, uint32_t app_id)
 {
     uint32_t i;
 
@@ -33,7 +33,13 @@ static void window_open(uint32_t seq)
 
     shared[SHARED_OFF_CMD / 4] = SHARED_CMD_ATTEST_BEGIN;
     shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE;
+    shared[SHARED_OFF_PCR_IDX / 4] = app_id;
     asm volatile("ecall");
+}
+
+static void window_open(uint32_t seq)
+{
+    window_open_app(seq, 0);
 }
 
 static void window_close(void)
@@ -130,9 +136,16 @@ static uint64_t transform(uint32_t intensity)
  */
 static uint32_t bench_seq;
 
+static uint32_t bench_app_id;
+
+void bench_set_app(uint32_t id)
+{
+    bench_app_id = id;
+}
+
 void bench_window_open(void)
 {
-    window_open(bench_seq);
+    window_open_app(bench_seq, bench_app_id);
 }
 
 void bench_window_close(void)
@@ -321,6 +334,7 @@ void client_bench_session(void)
          * opened here. It covers the benchmark body alone: not the
          * setup, not the verification, not the printing.
          */
+        bench_set_app(i + 1);
         start_trigger();
         result = bench_table[i].run();
         stop_trigger();

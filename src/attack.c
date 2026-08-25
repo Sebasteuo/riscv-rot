@@ -12,6 +12,7 @@
  */
 
 extern void bench_window_open(void);
+extern void bench_set_app(uint32_t id);
 extern void bench_window_close(void);
 
 /* Marks whether the diverted path was reached */
@@ -200,6 +201,8 @@ void attack_run(attack_kind_t kind)
     asm volatile("mv %0, sp" : "=r"(recover_sp));
     asm volatile("mv %0, ra" : "=r"(recover_ra));
 
+    /* All three scenarios exercise the same routine, profile 0 */
+    bench_set_app(0);
     bench_window_open();
 
     switch (kind) {

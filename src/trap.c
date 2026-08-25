@@ -27,6 +27,7 @@
 #include "secret.h"
 #include "timer.h"
 #include "attest.h"
+#include "profile.h"
 
 extern void post_umode_report(void);
 
@@ -940,7 +941,13 @@ static void process_attest_begin(volatile uint32_t *shared)
      * The nonce comes from the external verifier. It is what makes the
      * eventual report fresh: a replayed report carries the wrong nonce.
      */
+    /*
+     * The application identifier rides in the challenge, right after
+     * the nonce. The client does not get to say which application it
+     * is: a compromised one would name whichever profile it fits.
+     */
     attest_window_open(data, ATTEST_NONCE_SIZE);
+    attest_set_app(shared[SHARED_OFF_PCR_IDX / 4]);
 
     uart_puts("[ATT] Window open, nonce ");
     {
@@ -987,6 +994,21 @@ static void process_attest_end(volatile uint32_t *shared)
         }
     }
 
+    /*
+     * The internal verdict does not replace the external verifier. It
+     * travels alongside the metrics as the opinion of a component the
+     * client cannot tamper with, which is worth something even though
+     * the decision remains outside.
+     */
+    {
+        profile_verdict_t v = profile_check(attest_get_app(), delta);
+        data[ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8] = (uint8_t)v;
+
+        uart_puts("[ATT] Verdict: ");
+        uart_puts(profile_verdict_name(v));
+        uart_puts("\n");
+    }
+
     uart_puts("[ATT] Window closed: ");
     for (i = 0; i < ATTEST_FEATURES; i++) {
         if (i) {
@@ -996,7 +1018,7 @@ static void process_attest_end(volatile uint32_t *shared)
     }
     uart_puts("\n");
 
-    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8;
+    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8 + 1;
     shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_OK;
 }
 
