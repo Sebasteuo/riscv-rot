@@ -68,6 +68,7 @@ OBJS = \
   $(BUILD)/hpm_test.o \
   $(BUILD)/attest.o \
   $(BUILD)/client_app.o \
+  $(BUILD)/attack.o \
   $(BUILD)/board.o \
   $(BUILD)/beebsc.o \
   $(BUILD)/aha_mont64__mont64.o \
@@ -95,6 +96,9 @@ OBJS = \
   $(BUILD)/xgboost__xgboost.o
 
 all: $(TARGET).elf
+
+$(BUILD)/attack.o: src/attack.c | $(BUILD)
+	$(CC) $(CFLAGS) -fno-stack-protector -c $< -o $@
 
 $(BUILD)/board.o: lib/embench/board.c | $(BUILD)
 	$(CC) $(CFLAGS) -Ilib/embench -c $< -o $@

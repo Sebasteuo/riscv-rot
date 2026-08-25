@@ -27,6 +27,7 @@
 #include "keygen.h"
 #include "tpm2_api.h"
 #include "client_app.h"
+#include "attack.h"
 
 extern void uart_puts(const char *s);
 extern void uart_put_hex(uint64_t val);
@@ -1173,6 +1174,7 @@ void user_entry(void)
      */
     client_nominal_session();
     client_bench_session();
+    attack_session();
 
     tpm2_api_demo();
 }
