@@ -72,6 +72,28 @@ void attest_window_open(const uint8_t *nonce, uint32_t nonce_len);
 /* Returns 0 if no window is open. Otherwise fills out[] and returns 1. */
 int attest_window_close(uint64_t out[ATTEST_FEATURES]);
 
+/*
+ * Measurement point selection.
+ *
+ * The application carries more measurement points than any single
+ * attestation uses. Which ones fire is derived from the nonce, so it
+ * changes with every challenge.
+ *
+ * This is the mitigation ConFirm (ICCAD 2015) describes for the
+ * compensation attack: an adversary who knows where the measurement
+ * points sit can alter the flow between two of them and make it up
+ * afterwards, so the totals still match. Points that move with the
+ * challenge remove the fixed target that attack needs.
+ *
+ * It is a mitigation rather than a fix. An adversary who compromises
+ * every path still passes; what changes is that they can no longer
+ * pick a quiet stretch and work inside it.
+ */
+void attest_set_selection(const uint8_t *nonce, uint32_t nonce_len);
+
+/* Whether measurement point n fires under the current challenge */
+int attest_point_selected(uint32_t point);
+
 /* Which application the challenge says is being measured */
 void attest_set_app(uint32_t app_id);
 uint32_t attest_get_app(void);

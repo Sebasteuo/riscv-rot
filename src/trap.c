@@ -948,6 +948,7 @@ static void process_attest_begin(volatile uint32_t *shared)
      */
     attest_window_open(data, ATTEST_NONCE_SIZE);
     attest_set_app(shared[SHARED_OFF_PCR_IDX / 4]);
+    attest_set_selection(data, ATTEST_NONCE_SIZE);
 
     uart_puts("[ATT] Window open, nonce ");
     {

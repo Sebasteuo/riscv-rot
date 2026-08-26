@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "uart.h"
 #include "pmp.h"
+#include "attest.h"
 
 /*
  * Working set. Sized so a full traversal is measurable but the whole
@@ -143,6 +144,11 @@ void bench_set_app(uint32_t id)
     bench_app_id = id;
 }
 
+/*
+ * Measurement points the application offers. The challenge decides
+ * which of them fire, so an adversary cannot know in advance which
+ * stretch of execution goes unwatched.
+ */
 void bench_window_open(void)
 {
     window_open_app(bench_seq, bench_app_id);

@@ -30,6 +30,7 @@ static uint64_t window_base[ATTEST_FEATURES];
 static uint8_t  window_nonce[ATTEST_NONCE_SIZE];
 static int      window_open;
 static uint32_t window_app;
+static uint32_t point_mask;
 static uint32_t dropped;
 
 static void read_all(uint64_t out[ATTEST_FEATURES])
@@ -109,6 +110,31 @@ int attest_window_close(uint64_t out[ATTEST_FEATURES])
 
     window_open = 0;
     return 1;
+}
+
+void attest_set_selection(const uint8_t *nonce, uint32_t nonce_len)
+{
+    uint32_t i;
+    uint32_t m = 0;
+
+    /*
+     * Fold the nonce into a bitmask, one bit per measurement point.
+     * Nothing cryptographic is needed here: the point is that the
+     * selection is unpredictable to the client, and the nonce already
+     * comes from the verifier.
+     */
+    for (i = 0; i < nonce_len; i++) {
+        m = (m << 3) ^ (m >> 29) ^ (uint32_t)nonce[i];
+    }
+
+    /* Never select none: an attestation that measures nothing is
+       worse than useless, it looks like a pass. */
+    point_mask = m ? m : 1u;
+}
+
+int attest_point_selected(uint32_t point)
+{
+    return (point_mask >> (point & 31)) & 1u;
 }
 
 void attest_set_app(uint32_t app_id)
