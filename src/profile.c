@@ -14,22 +14,34 @@
  * there is no natural variance to leave room for.
  */
 
-#define TOL 2000   /* 20 percent, in parts per 10000 */
+/*
+ * Profiles fitted from measured windows by tools/fit_profiles.py.
+ *
+ * Every figure is the mean of three runs of the same workload at
+ * different intensities, and the tolerance comes from the spread those
+ * runs showed rather than from a number picked by hand. Only nominal
+ * windows took part in the fit: the adversarial ones were held back,
+ * so detection is measured against data the model never saw.
+ *
+ * The band is capped at 35 percent. Beyond that a tolerance stops
+ * being one, and ratios that swing more than that across intensities
+ * are better served by the absolute floor in within().
+ */
 
 static const profile_t profiles[] = {
-    /*                store  branch   jump   per 10000 loads */
-    /*  0: vulnerable */ { 3850, 1549,  235, TOL },
-    /*  1: aha-mont64 */ { 4879, 1494,   43, TOL },
-    /*  2: crc32      */ { 5007, 1666, 1666, TOL },
-    /*  3: depthconv  */ { 3911,  354,  331, TOL },
-    /*  4: edn        */ { 2562,  745,    2, TOL },
-    /*  5: huffbench  */ { 2983, 1520,    4, TOL },
-    /*  6: matmult-int*/ { 1972, 1377,    0, TOL },
-    /*  7: md5sum     */ { 3239, 1280,    3, TOL },
-    /*  8: nettle-aes */ { 1616,  228,    3, TOL },
-    /*  9: nettle-sha */ { 2041,  449,   29, TOL },
-    /* 10: nsichneu   */ { 2054, 1011,    0, TOL },
-    /* 11: picojpeg   */ { 5797, 1107,  587, TOL },
+    /*                    store branch  jump   tol  */
+    /*  0: vulnerable */ {  3849,  1549,  234, 1000 },
+    /*  1: aha-mont64 */ {  4883,  1489,   49, 2857 },
+    /*  2: crc32      */ {  5006,  1665, 1666, 1000 },
+    /*  3: depthconv  */ {  3913,   353,  333, 1000 },
+    /*  4: edn        */ {  2561,   744,    1, 3500 },
+    /*  5: huffbench  */ {  2983,  1520,    3, 1000 },
+    /*  6: matmult-int*/ {  1972,  1376,    0, 1000 },
+    /*  7: md5sum     */ {  2930,  1249,   23, 3500 },
+    /*  8: nettle-aes */ {  1617,   228,    3, 3500 },
+    /*  9: nettle-sha */ {  2048,   447,   33, 3030 },
+    /* 10: nsichneu   */ {  2087,  1006,   23, 3500 },
+    /* 11: picojpeg   */ {  5796,  1106,  587, 1000 },
 };
 
 #define PROFILE_COUNT (sizeof(profiles) / sizeof(profiles[0]))

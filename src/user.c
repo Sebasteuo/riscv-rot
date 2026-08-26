@@ -1172,7 +1172,13 @@ void user_entry(void)
      * tpm2_api_demo() because that call does not return: it ends with
      * TPM2_Shutdown(), which hands control back to M-mode.
      */
-    client_nominal_session();
+    /*
+     * The hand-written workloads are gone: Embench replaced them.
+     * Keeping both would mix a standard corpus with workloads written
+     * for this project, which is exactly what using a standard corpus
+     * was meant to avoid.
+     */
+    /* client_nominal_session(); */
     client_bench_varied();
     attack_session();
 
