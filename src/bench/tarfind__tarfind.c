@@ -40,7 +40,7 @@ typedef struct {
 
 #define HEAP_SIZE roundup((sizeof(tar_header_t) * ARCHIVE_FILES), sizeof(void *))
 static char _Alignas(_Alignof(tar_header_t)) heap[HEAP_SIZE]; 
-static int benchmark_body(unsigned int lsf, unsigned int gsf);
+int benchmark_body(unsigned int lsf, unsigned int gsf);
 
 void
 warm_caches (int  heat)
@@ -59,7 +59,7 @@ initialise_benchmark (void)
 {
 }
 
-static int __attribute__ ((noinline))
+int __attribute__ ((noinline))
 benchmark_body(unsigned int lsf, unsigned int gsf)
 {
   int i, p;

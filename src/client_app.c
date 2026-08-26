@@ -305,6 +305,74 @@ static const bench_entry_t bench_table[] = {
 
 #define BENCH_COUNT (sizeof(bench_table) / sizeof(bench_table[0]))
 
+/*
+ * Direct access to each benchmark body, so the same workload can run
+ * at several intensities without recompiling. Embench normally fixes
+ * the scale at build time; varying it here is what produces more than
+ * one window per application, which the profiles need in order to
+ * describe a range rather than a single point.
+ */
+extern int body_aha_mont64(unsigned, unsigned);
+extern int body_crc32(unsigned, unsigned);
+extern int body_depthconv(unsigned, unsigned);
+extern int body_edn(unsigned, unsigned);
+extern int body_huffbench(unsigned, unsigned);
+extern int body_matmult_int(unsigned, unsigned);
+extern int body_md5sum(unsigned, unsigned);
+extern int body_nettle_aes(unsigned, unsigned);
+extern int body_nettle_sha256(unsigned, unsigned);
+extern int body_nsichneu(unsigned, unsigned);
+extern int body_picojpeg(unsigned, unsigned);
+
+static int (* const bench_body[])(unsigned, unsigned) = {
+    body_aha_mont64,
+    body_crc32,
+    body_depthconv,
+    body_edn,
+    body_huffbench,
+    body_matmult_int,
+    body_md5sum,
+    body_nettle_aes,
+    body_nettle_sha256,
+    body_nsichneu,
+    body_picojpeg,
+};
+
+/* Local scale factors, read from each benchmark source */
+static const unsigned bench_lsf[] = {
+    1, 170, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+};
+
+void client_bench_varied(void)
+{
+    static const unsigned gsf[] = { 1, 2, 3 };
+    uint32_t i, g;
+
+    uart_puts("\n[APP] === Embench, varied intensity ===\n");
+
+    initialise_board();
+    init_heap_beebs(bench_heap, BENCH_HEAP_SIZE);
+
+    for (i = 0; i < BENCH_COUNT; i++) {
+        for (g = 0; g < 3; g++) {
+            uart_puts("[APP] ");
+            uart_puts(bench_table[i].name);
+            uart_puts(" g");
+            uart_put_dec((uint64_t)gsf[g]);
+            uart_puts("\n");
+
+            bench_table[i].init();
+
+            bench_set_app(i + 1);
+            start_trigger();
+            bench_body[i](bench_lsf[i], gsf[g]);
+            stop_trigger();
+        }
+    }
+
+    uart_puts("[APP] === varied done ===\n");
+}
+
 void client_bench_session(void)
 {
     uint32_t i;

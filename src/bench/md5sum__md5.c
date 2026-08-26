@@ -186,7 +186,7 @@ initialise_benchmark (void)
 }
 
 
-static int  benchmark_body(unsigned int lsf, unsigned int gsf, int len);
+int  benchmark_body(unsigned int lsf, unsigned int gsf, int len);
 
 void
 warm_caches (int  heat)
@@ -203,7 +203,7 @@ benchmark (void)
   return benchmark_body (LOCAL_SCALE_FACTOR, GLOBAL_SCALE_FACTOR, MSG_SIZE);
 }
 
-static int __attribute__ ((noinline))
+int __attribute__ ((noinline))
 benchmark_body(unsigned int lsf, unsigned int gsf, int len)
 {
   int i, j;

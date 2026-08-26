@@ -1173,7 +1173,7 @@ void user_entry(void)
      * TPM2_Shutdown(), which hands control back to M-mode.
      */
     client_nominal_session();
-    client_bench_session();
+    client_bench_varied();
     attack_session();
 
     tpm2_api_demo();

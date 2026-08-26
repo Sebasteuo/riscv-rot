@@ -56,4 +56,8 @@ void client_nominal_session(void);
  */
 void client_bench_session(void);
 
+/* Same workloads at several intensities, so each profile
+ * describes a range rather than a single point. */
+void client_bench_varied(void);
+
 #endif /* CLIENT_APP_H */

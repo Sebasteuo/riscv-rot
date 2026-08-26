@@ -215,7 +215,7 @@ xbinGCD (uint64 a, uint64 b, volatile uint64 * pu, volatile uint64 * pv)
 /* ------------------------------ main ------------------------------ */
 static uint64 in_a, in_b, in_m;
 
-static int  benchmark_body(unsigned int lsf, unsigned int gsf);
+int  benchmark_body(unsigned int lsf, unsigned int gsf);
 
 void
 warm_caches (int  heat)
@@ -233,7 +233,7 @@ benchmark (void)
 }
 
 
-static int __attribute__ ((noinline))
+int __attribute__ ((noinline))
 benchmark_body(unsigned int lsf, unsigned int gsf)
 {
   int i;

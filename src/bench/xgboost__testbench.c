@@ -14,7 +14,7 @@
 
 #define LOCAL_SCALE_FACTOR 1
 
-static int  benchmark_body(unsigned int lsf, unsigned int gsf);
+int  benchmark_body(unsigned int lsf, unsigned int gsf);
 
 void warm_caches(int heat)
 {
@@ -28,7 +28,7 @@ int benchmark(void)
   return benchmark_body(LOCAL_SCALE_FACTOR, GLOBAL_SCALE_FACTOR);
 }
 
-static int __attribute__((noinline))
+int __attribute__((noinline))
 benchmark_body(unsigned int lsf, unsigned int gsf)
 {
     // Run inference with all samples specified in xgboost.c
