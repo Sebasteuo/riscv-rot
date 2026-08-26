@@ -40,6 +40,20 @@ typedef enum {
      * is mapped executable; a non-executable stack would block this
      * one while leaving ATTACK_REDIRECT untouched.
      */
+    /*
+     * Implemented and the diversion does occur, but the run does not
+     * survive it long enough to close the window, so no measurement
+     * comes back. The injected payload would have to restore enough
+     * context to return, which a real exploit does and this one does
+     * not.
+     *
+     * Left in rather than removed, because the case it represents is
+     * worth stating: injection needs an executable stack, which this
+     * platform's PMP configuration grants. A system mapping U-mode
+     * data as non-executable would block ATTACK_INJECT outright while
+     * leaving ATTACK_REDIRECT untouched, since code reuse never
+     * executes data.
+     */
     ATTACK_INJECT,
 
     ATTACK_COUNT,

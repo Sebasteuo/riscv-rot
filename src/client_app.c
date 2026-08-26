@@ -149,6 +149,11 @@ void bench_set_app(uint32_t id)
  * which of them fire, so an adversary cannot know in advance which
  * stretch of execution goes unwatched.
  */
+/*
+ * Measurement points the application offers. The challenge decides
+ * which of them fire, so an adversary cannot know in advance which
+ * stretch of execution goes unwatched.
+ */
 void bench_window_open(void)
 {
     window_open_app(bench_seq, bench_app_id);
