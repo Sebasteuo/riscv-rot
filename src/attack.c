@@ -38,6 +38,52 @@ static volatile uint64_t work_sink;
 static uint64_t recover_sp;
 static uint64_t recover_ra;
 
+/*
+ * A function the program calls on its own.
+ *
+ * This is the target for the code-reuse scenario. Unlike
+ * unreachable_path(), reaching it proves nothing by itself: the
+ * program gets here legitimately during normal operation. That is
+ * exactly what makes it the hard case. A classifier that keys on
+ * "reached somewhere it should not" has nothing to work with; only
+ * the shape of the execution can tell the two apart.
+ */
+static volatile int reuse_active;
+
+static void __attribute__((noinline)) benign_helper(void)
+{
+    volatile uint32_t i;
+
+    for (i = 0; i < 16; i++) {
+        work_sink += i;
+    }
+
+    /*
+     * On the normal path this returns like any other function. When
+     * the code-reuse scenario diverted here, the frame that would be
+     * returned to no longer exists, so the window is closed and
+     * control is restored by hand, the same way unreachable_path does.
+     *
+     * The branch costs one comparison on the nominal path. That is
+     * visible in the counters and accounted for in the profile, which
+     * is preferable to a second copy of the function that would differ in
+     * ways harder to reason about.
+     */
+    if (reuse_active) {
+        diverted = 1;
+        reuse_active = 0;
+
+        bench_window_close();
+
+        asm volatile(
+            "ld sp, %0\n"
+            "ld ra, %1\n"
+            "jr ra\n"
+            :: "m"(recover_sp), "m"(recover_ra) : "memory"
+        );
+    }
+}
+
 static void __attribute__((noinline)) unreachable_path(void)
 {
     volatile uint64_t acc = 0;
@@ -111,6 +157,7 @@ static void run_none(void)
     for (i = 0; i < 16; i++) {
         input[i] = (uint8_t)(i + 1);
     }
+    benign_helper();
     vulnerable(input, sizeof(input));
 }
 
@@ -187,8 +234,71 @@ static void run_inject(void)
 /* ---------------------------------------------------------------- */
 
 static const char *kind_name[ATTACK_COUNT] = {
-    "none", "redirect", "inject",
+    "none", "redirect", "inject", "small", "long", "reuse",
 };
+
+static void run_small(void)
+{
+    /*
+     * Overflow by a handful of bytes, stopping short of the saved
+     * return address. The frame is corrupted but control flow is not
+     * diverted, so whatever the classifier sees comes from the copy
+     * loop alone.
+     */
+    uint8_t input[40];
+    int i;
+
+    for (i = 0; i < 40; i++) {
+        input[i] = 0x41;
+    }
+    vulnerable(input, sizeof(input));
+}
+
+static void run_long(void)
+{
+    /*
+     * A long input that still diverts, so the copy loop runs far
+     * longer than in the base case. If the classifier keys on volume
+     * rather than on the diversion, this is where it shows.
+     */
+    uint8_t input[256];
+    uint64_t target = (uint64_t)(void *)unreachable_path;
+    int i;
+
+    for (i = 0; i < 256; i++) {
+        input[i] = 0x41;
+    }
+    for (i = 0; i < 8; i++) {
+        input[40 + i] = (uint8_t)((target >> (i * 8)) & 0xFF);
+    }
+    vulnerable(input, sizeof(input));
+}
+
+static void run_reuse(void)
+{
+    /*
+     * Divert into a function the program already calls, rather than
+     * into one nothing reaches. This is the shape of a code-reuse
+     * attack, and it is deliberately the hardest case: the target is
+     * legitimate code, so the counter signature stays closer to
+     * nominal than a jump into dead code would.
+     *
+     * If the classifier misses this one, that is the finding.
+     */
+    uint8_t input[64];
+    uint64_t target = (uint64_t)(void *)benign_helper;
+    int i;
+
+    reuse_active = 1;
+
+    for (i = 0; i < 64; i++) {
+        input[i] = 0x41;
+    }
+    for (i = 0; i < 8; i++) {
+        input[40 + i] = (uint8_t)((target >> (i * 8)) & 0xFF);
+    }
+    vulnerable(input, sizeof(input));
+}
 
 void attack_run(attack_kind_t kind)
 {
@@ -209,6 +319,9 @@ void attack_run(attack_kind_t kind)
     case ATTACK_NONE:     run_none();     break;
     case ATTACK_REDIRECT: run_redirect(); break;
     case ATTACK_INJECT:   run_inject();   break;
+    case ATTACK_SMALL:    run_small();    break;
+    case ATTACK_LONG:     run_long();     break;
+    case ATTACK_REUSE:    run_reuse();    break;
     default: break;
     }
 
@@ -225,6 +338,16 @@ void attack_session(void)
     uart_puts("\n[ATK] === adversarial workloads ===\n");
 
     for (k = 0; k < ATTACK_COUNT; k++) {
+        /*
+         * ATTACK_INJECT is skipped rather than removed. The diversion
+         * does happen, but the run does not survive it long enough to
+         * close its window, so including it would stall the sweep.
+         * attack.h records why.
+         */
+        if (k == ATTACK_INJECT) {
+            continue;
+        }
+
         uart_puts("[ATK] ");
         uart_puts(kind_name[k]);
         uart_puts("\n");

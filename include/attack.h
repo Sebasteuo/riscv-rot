@@ -56,6 +56,30 @@ typedef enum {
      */
     ATTACK_INJECT,
 
+    /*
+     * Variants of the same defect, kept apart because they produce
+     * different signatures.
+     *
+     * One attack says the classifier caught that attack. Several say
+     * something about the shape of what it catches, which is what an
+     * evaluation needs.
+     */
+
+    /* Minimal overflow: writes just past the buffer without diverting
+     * control. Tests whether the classifier reacts to the copy itself
+     * or only to the diversion. */
+    ATTACK_SMALL,
+
+    /* Long overflow: a much larger input, so the copy loop dominates.
+     * Should be the loudest of the three on store and branch. */
+    ATTACK_LONG,
+
+    /* Code reuse: diverts into the middle of an existing function
+     * rather than to a function nothing calls. Closer to what a real
+     * return-oriented attack does, and the hardest of the three to
+     * separate from nominal behaviour. */
+    ATTACK_REUSE,
+
     ATTACK_COUNT,
 } attack_kind_t;
 
