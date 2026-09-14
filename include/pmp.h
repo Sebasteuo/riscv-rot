@@ -302,6 +302,7 @@
  */
 #define SHARED_CMD_ATTEST_BEGIN   0x0E  /* open a window, carries a nonce */
 #define SHARED_CMD_ATTEST_END     0x0F  /* close it and return the report */
+#define SHARED_CMD_ATTEST_COST    0x10  /* report the cost of the attestation path */
 
 /* Nonce size, in bytes, carried in the DATA area of ATTEST_BEGIN */
 #define ATTEST_NONCE_SIZE  16

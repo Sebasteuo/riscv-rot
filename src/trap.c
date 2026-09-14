@@ -1002,7 +1002,10 @@ static void process_attest_end(volatile uint32_t *shared)
      * the decision remains outside.
      */
     {
+        uint64_t ct0 = timer_now();
         profile_verdict_t v = profile_check(attest_get_app(), delta);
+        attest_add_class_us(timer_now() - ct0);
+
         data[ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8] = (uint8_t)v;
 
         uart_puts("[ATT] Verdict: ");
@@ -1185,6 +1188,40 @@ static void process_shared_command(void)
     case SHARED_CMD_ATTEST_BEGIN:
         process_attest_begin(shared);
         break;
+
+    case SHARED_CMD_ATTEST_COST: {
+        /*
+         * Report what the attestation path cost against the work it
+         * observed. Both figures are accumulated over the whole run.
+         *
+         * The client cannot read these directly: they live in the
+         * firmware's protected region, which is the point. It asks,
+         * the crypto core answers.
+         */
+        uint64_t c = attest_cost_us();
+        uint64_t w = attest_work_us();
+        uint32_t n = attest_window_count();
+        uint32_t k;
+
+        for (k = 0; k < 8; k++) {
+            data[k]     = (uint8_t)(c >> (56 - 8 * k));
+            data[8 + k] = (uint8_t)(w >> (56 - 8 * k));
+        }
+        for (k = 0; k < 4; k++) {
+            data[16 + k] = (uint8_t)(n >> (24 - 8 * k));
+        }
+
+        {
+            uint64_t cl = attest_class_us();
+            for (k = 0; k < 8; k++) {
+                data[20 + k] = (uint8_t)(cl >> (56 - 8 * k));
+            }
+        }
+
+        shared[SHARED_OFF_SIZE / 4] = 28;
+        shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_OK;
+        break;
+    }
 
     case SHARED_CMD_ATTEST_END:
         process_attest_end(shared);

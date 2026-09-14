@@ -382,6 +382,45 @@ void client_bench_varied(void)
     }
 
     uart_puts("[APP] === varied done ===\n");
+
+    /*
+     * Ask the crypto core what the attestation path cost.
+     *
+     * The absolute microseconds are not the result: the emulator is
+     * not cycle accurate. What the evaluation reports is the ratio
+     * between the two figures, which says how much of the observed
+     * time went into observing rather than working.
+     */
+    {
+        volatile uint32_t *sh = (volatile uint32_t *)SHARED_BASE;
+        volatile uint8_t  *d  = (volatile uint8_t *)(SHARED_BASE + 16);
+        uint64_t cost = 0, work = 0, clas = 0;
+        uint32_t n = 0, k;
+
+        sh[SHARED_OFF_CMD / 4] = SHARED_CMD_ATTEST_COST;
+        asm volatile("ecall");
+
+        for (k = 0; k < 8; k++) {
+            cost = (cost << 8) | d[k];
+            work = (work << 8) | d[8 + k];
+        }
+        for (k = 0; k < 4; k++) {
+            n = (n << 8) | d[16 + k];
+        }
+        for (k = 0; k < 8; k++) {
+            clas = (clas << 8) | d[20 + k];
+        }
+
+        uart_puts("[COST] windows=");
+        uart_put_dec((uint64_t)n);
+        uart_puts(" attest_us=");
+        uart_put_dec(cost);
+        uart_puts(" work_us=");
+        uart_put_dec(work);
+        uart_puts(" class_us=");
+        uart_put_dec(clas);
+        uart_puts("\n");
+    }
 }
 
 void client_bench_session(void)
