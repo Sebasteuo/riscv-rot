@@ -329,7 +329,20 @@ extern int body_depthconv(unsigned, unsigned);
 extern int body_edn(unsigned, unsigned);
 extern int body_huffbench(unsigned, unsigned);
 extern int body_matmult_int(unsigned, unsigned);
-extern int body_md5sum(unsigned, unsigned);
+/*
+ * md5sum's body takes a third argument, the message length, unlike
+ * every other benchmark in the suite. Declaring it with two leaves
+ * that argument holding whatever the register happened to contain.
+ * Under QEMU the leftover value is harmless and the benchmark runs;
+ * on a real U74 it made len large enough that malloc_beebs returned
+ * NULL and md5 wrote through the null pointer. Found while comparing
+ * counter behaviour against silicon.
+ */
+extern int body_md5sum(unsigned, unsigned, int);
+static int md5sum_body(unsigned lsf, unsigned gsf)
+{
+    return body_md5sum(lsf, gsf, 1000);   /* MSG_SIZE */
+}
 extern int body_nettle_aes(unsigned, unsigned);
 extern int body_nettle_sha256(unsigned, unsigned);
 extern int body_nsichneu(unsigned, unsigned);
@@ -342,7 +355,7 @@ static int (* const bench_body[])(unsigned, unsigned) = {
     body_edn,
     body_huffbench,
     body_matmult_int,
-    body_md5sum,
+    md5sum_body,
     body_nettle_aes,
     body_nettle_sha256,
     body_nsichneu,
