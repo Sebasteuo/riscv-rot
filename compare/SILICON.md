@@ -61,3 +61,29 @@ deterministic point in the instruction stream.
 
 Five of the six OE2 events are therefore equivalent between emulator
 and silicon. The sixth, privilege-mode switch, has no U74 counterpart.
+
+## Adversarial scenarios
+
+The same harness, one scenario and one event pair per boot, run on
+qemu-ccore and on a U74 hart.
+
+             load  store  branch  jalr  diverted
+  none        103   103     84      4     no
+  small        44    85     82      3     no
+  redirect    269   345    338      3     yes
+  long        461   729    722      3     yes
+  reuse       134   177    156      3     yes
+
+Twenty figures, twenty matches.
+
+The indirect-jump count falls from four to three on every scenario that
+diverts control, including code reuse, where the target is a function
+the program already calls. The signal the classifier keys on is a
+return that never happens, and it is present on silicon exactly as it
+is under emulation, branch prediction and a real pipeline
+notwithstanding.
+
+The harness measures one scenario per boot because the diverted paths
+jump back to a recovery point and skip whatever follows; sharing state
+across scenarios in a loop cannot be made reliable. The scenario is
+selected by a config byte patched into the image.
