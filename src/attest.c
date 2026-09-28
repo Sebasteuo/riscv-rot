@@ -42,7 +42,7 @@ static uint32_t point_mask;
  * being observed.
  *
  * The split is what makes the relative figure possible. Neither number
- * means much alone under emulation; their ratio does.
+ * means much alone under emulation. Their ratio does.
  */
 static uint64_t cost_us;
 static uint64_t work_us;
@@ -54,7 +54,7 @@ static uint64_t class_us;
  * The classification is timed separately from the counter reads.
  *
  * The two answer different questions. The read cost is what any
- * attestation scheme pays to collect evidence; the classification cost
+ * attestation scheme pays to collect evidence. The classification cost
  * is what this design pays for deciding inside the device rather than
  * shipping the metrics out. Only the second is particular to the
  * approach, so lumping them together would hide the figure that

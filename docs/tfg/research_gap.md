@@ -135,7 +135,7 @@ work that got there first.
 
 ## 7. Limitations carried forward
 
-- **No evaluation on silicon.** HPCCFA has this; this work does not. Declared
+- **No evaluation on silicon.** HPCCFA has this, and this work does not. Declared
   in the project proposal and retained as future work.
 - **Detection is probabilistic, not absolute.** The classifier detects
   deviation from learned behaviour. An attack reproducing the nominal profile

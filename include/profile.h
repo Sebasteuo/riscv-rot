@@ -21,7 +21,7 @@
  *
  * The application identifier travels in the challenge, not in a field
  * the client fills in. A compromised client could lie about which
- * application it is and be measured against the wrong profile; the
+ * application it is and be measured against the wrong profile. The
  * verifier stating what it expects to see closes that.
  */
 

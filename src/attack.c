@@ -171,7 +171,7 @@ static void run_redirect(void)
     /*
      * Overwrite the saved return address with the address of
      * unreachable_path(). The offset to the saved ra depends on the
-     * frame gcc emits for vulnerable(); it is checked against the
+     * frame gcc emits for vulnerable, and it is checked against the
      * disassembly rather than guessed.
      */
     uint8_t input[64];

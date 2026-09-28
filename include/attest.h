@@ -107,7 +107,7 @@ void     attest_cost_reset(void);
  * challenge remove the fixed target that attack needs.
  *
  * It is a mitigation rather than a fix. An adversary who compromises
- * every path still passes; what changes is that they can no longer
+ * every path still passes. What changes is that they can no longer
  * pick a quiet stretch and work inside it.
  */
 void attest_set_selection(const uint8_t *nonce, uint32_t nonce_len);

@@ -24,7 +24,7 @@ trabajos que los cruzan.
 | fTPM | USENIX Sec 2016 | TPM 2.0 completo en firmware sobre TrustZone | Precedente de TPM en firmware. Requiere TrustZone y sistema operativo |
 | fTPM en RISC-V | DATE 2021 | TPM de firmware para RISC-V | **Es una propuesta de diseño, no implementación.** Depende de OP-TEE y sistema operativo enriquecido. Los autores declaran el port de OP-TEE como trabajo futuro |
 | LIRA-V | IEEE SPW 2021 | Attestation remota en RISC-V restringido, ROM y PMP como ancla | Lo más cercano a mi escenario. Es attestation estática de desafío y respuesta, no de runtime |
-| Secure boot ligero | ISQED 2019 | Cadena de arranque firmada en SoC RISC-V, ECDSA y SHA-3 | **Confirma que la firma asimétrica es el enfoque correcto.** Lo resuelven con un bloque de hardware dedicado; lo mío es software puro en M-mode |
+| Secure boot ligero | ISQED 2019 | Cadena de arranque firmada en SoC RISC-V, ECDSA y SHA-3 | **Confirma que la firma asimétrica es el enfoque correcto.** Lo resuelven con un bloque de hardware dedicado, mientras que lo mío es software puro en M-mode |
 
 **Dónde me paro.** El nicho es un Root of Trust bare-metal, abierto y
 reproducible: sin sistema operativo debajo como Keystone, y sin silicio
@@ -82,8 +82,8 @@ núcleo de aplicación con sistema operativo.
 **HPCCFA** es el más cercano en plataforma y apareció en marzo de 2026. Usa
 contadores para attestation de flujo de control **sobre RISC-V**, lo que hasta
 ahora nadie había hecho. Tres diferencias: corre dentro de un enclave
-Keystone, o sea con security monitor y sistema operativo; genera trazas de
-flujo de control en vez de clasificar con un modelo; y no está arbitrado.
+Keystone, o sea con security monitor y sistema operativo. Genera trazas de
+flujo de control en vez de clasificar con un modelo, y no está arbitrado.
 Conviene reconocer algo en lo que me superan: evalúan sobre silicio real,
 mientras que este trabajo evalúa sobre emulación instrumentada.
 

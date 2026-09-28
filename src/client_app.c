@@ -20,7 +20,7 @@ static volatile uint8_t *shared_data =
 
 /*
  * Open a measurement window. The nonce would come from the external
- * verifier in a real deployment; here it is derived from the window
+ * verifier in a real deployment. Here it is derived from the window
  * index so runs stay reproducible while each window still carries a
  * distinct value.
  */
@@ -205,7 +205,7 @@ static uint8_t bench_heap[BENCH_HEAP_SIZE];
 /*
  * Each benchmark is compiled with its entry points renamed, so all
  * nineteen can live in one binary and run one after another. The
- * renaming happens on the compiler command line; the sources are
+ * renaming happens on the compiler command line, so the sources are
  * unmodified.
  */
 extern void init_aha_mont64(void);
@@ -319,7 +319,7 @@ static const bench_entry_t bench_table[] = {
 /*
  * Direct access to each benchmark body, so the same workload can run
  * at several intensities without recompiling. Embench normally fixes
- * the scale at build time; varying it here is what produces more than
+ * the scale at build time. Varying it here is what produces more than
  * one window per application, which the profiles need in order to
  * describe a range rather than a single point.
  */
@@ -333,7 +333,7 @@ extern int body_matmult_int(unsigned, unsigned);
  * md5sum's body takes a third argument, the message length, unlike
  * every other benchmark in the suite. Declaring it with two leaves
  * that argument holding whatever the register happened to contain.
- * Under QEMU the leftover value is harmless and the benchmark runs;
+ * Under QEMU the leftover value is harmless and the benchmark runs.
  * on a real U74 it made len large enough that malloc_beebs returned
  * NULL and md5 wrote through the null pointer. Found while comparing
  * counter behaviour against silicon.

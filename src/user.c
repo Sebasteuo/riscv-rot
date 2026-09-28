@@ -1070,7 +1070,7 @@ void user_entry(void)
      * SRS-F-003: the PMP configuration must be immutable from U-mode.
      * pmpcfg0 is a Machine-mode CSR, so writing it from U-mode raises an
      * illegal-instruction exception (mcause 0x2) that the trap handler
-     * catches. We try it and continue; the PMP config stays untouched.
+     * catches. We try it and continue. The PMP config stays untouched.
      */
     uart_puts("\n[USER] ================================\n");
     uart_puts("[USER] Test 33: Attempting to WRITE pmpcfg0 from U-mode...\n");

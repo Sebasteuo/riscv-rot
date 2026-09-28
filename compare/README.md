@@ -19,4 +19,4 @@ Result: identical counts, twelve for twelve.
 
 For architectural events, qemu-ccore counts exactly what the U74 counts,
 not merely proportionally. The branch event had to be "conditional branch
-retired" (0xF6) to match; "branch taken" does not.
+retired" (0xF6) to match. "branch taken" does not.

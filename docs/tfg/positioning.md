@@ -24,7 +24,7 @@ the few works that cross both.
 | fTPM | USENIX Sec 2016 | Full TPM 2.0 in firmware on TrustZone | Precedent for a firmware TPM. Requires TrustZone and an operating system |
 | fTPM on RISC-V | DATE 2021 | Firmware TPM for RISC-V | **A design proposal, not an implementation.** Depends on OP-TEE and a rich operating system. The authors list porting OP-TEE to RISC-V as future work |
 | LIRA-V | IEEE SPW 2021 | Remote attestation on constrained RISC-V, ROM and PMP as anchor | The closest match to this scenario. Static challenge-response attestation, not runtime |
-| Lightweight secure boot | ISQED 2019 | Signed boot chain on a RISC-V SoC, ECDSA and SHA-3 | **Confirms asymmetric signatures are the right approach.** They solve it with a dedicated hardware block; this work is pure software at M-mode |
+| Lightweight secure boot | ISQED 2019 | Signed boot chain on a RISC-V SoC, ECDSA and SHA-3 | **Confirms asymmetric signatures are the right approach.** They solve it with a dedicated hardware block, while this work is pure software at M-mode |
 
 **Where this work sits.** The niche is a bare-metal, open and reproducible
 root of trust: no operating system underneath as Keystone requires, and no
@@ -83,8 +83,8 @@ operating system.
 **HPCCFA** is the closest in platform and appeared in March 2026. It uses
 performance counters for control-flow attestation **on RISC-V**, which no
 prior work had done. Three differences: it runs inside a Keystone enclave,
-that is, with a security monitor and an operating system; it generates
-control-flow traces rather than classifying with a model; and it is not peer
+that is, with a security monitor and an operating system. It generates
+control-flow traces rather than classifying with a model, and it is not peer
 reviewed. One point in their favor should be acknowledged: they evaluate on
 real silicon, while this work evaluates under instrumented emulation.
 

@@ -37,7 +37,7 @@ typedef enum {
      * Code injection. The input carries RISC-V instructions and the
      * return address points back into the buffer, so the processor
      * executes data as code. Possible here because the U-mode region
-     * is mapped executable; a non-executable stack would block this
+     * is mapped executable. A non-executable stack would block this
      * one while leaving ATTACK_REDIRECT untouched.
      */
     /*
