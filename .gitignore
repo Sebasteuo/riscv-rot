@@ -24,3 +24,8 @@ stage2.img
 stage2.bin
 data/
 docs/tfg/informes/
+
+# compare: binarios reproducibles, no versionar
+compare/*.bin
+compare/*.elf
+compare/*.o
