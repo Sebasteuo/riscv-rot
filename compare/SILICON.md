@@ -32,3 +32,17 @@ offset looks like and noise does not.
   declares body_md5sum with two and gets away with it under QEMU; on
   silicon the leftover register made len huge, malloc returned NULL and
   md5 memcpy'd through it. This is a latent defect in the platform.
+
+## The store offset, isolated
+
+A probe with three stores and nothing else:
+
+  qemu-ccore  3
+  U74 hart    2
+
+qemu-ccore counts a store when gen_store emits it; the U74 counts it at
+retirement. The last store before the csrr that reads the counter has
+been emitted but not retired, so the emulator includes it and the core
+does not. This accounts for all 33 offsets in the table above,
+independently of whether the benchmark issues 262 stores or 1.5
+million.
