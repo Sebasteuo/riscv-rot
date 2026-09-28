@@ -46,3 +46,18 @@ been emitted but not retired, so the emulator includes it and the core
 does not. This accounts for all 33 offsets in the table above,
 independently of whether the benchmark issues 262 stores or 1.5
 million.
+
+## Fifth event: traps
+
+A thousand ecalls, counted on both sides:
+
+  qemu-ccore  1000
+  U74 hart    1000
+
+Exact, and without the one-unit offset the stores carry, since the loop
+finishes before the counter is read. Traps were the event least likely
+to match, because unlike loads, stores and branches they are not a
+deterministic point in the instruction stream.
+
+Five of the six OE2 events are therefore equivalent between emulator
+and silicon. The sixth, privilege-mode switch, has no U74 counterpart.
