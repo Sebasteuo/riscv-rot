@@ -320,6 +320,11 @@ test: $(TARGET).elf
 	else \
 		echo "  [FAIL] counter unit tests did not all pass"; pass=0; \
 	fi; \
+	if grep -q "unexpected" test_output.log; then \
+		echo "  [FAIL] a U-mode test reported an unexpected result"; pass=0; \
+	else \
+		echo "  [OK] no U-mode test reported an unexpected result"; \
+	fi; \
 	tfail=$$(grep "us (limit" test_output.log | grep -c "FAIL"); \
 	if [ "$$tfail" -eq 0 ]; then \
 		echo "  [OK] no timing limit violations (SRS-P-001/P-002)"; \
