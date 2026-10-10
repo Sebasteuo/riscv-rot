@@ -1,0 +1,38 @@
+
+=== eleven benchmarks on qemu-ccore, four events each ===
+
+aha-mont64     g1  L=4639 S=2266 B=912 J=22
+aha-mont64     g2  L=9266 S=4524 B=1821 J=42
+aha-mont64     g3  L=13893 S=6782 B=2730 J=62
+crc32          g1  L=1046867 S=524116 B=174761 J=174422
+crc32          g2  L=2092877 S=1047886 B=349181 J=348842
+crc32          g3  L=3138887 S=1571656 B=523601 J=523262
+depthconv      g1  L=10152 S=3974 B=1261 J=338
+depthconv      g2  L=20293 S=7940 B=2519 J=674
+depthconv      g3  L=30434 S=11906 B=3777 J=1010
+edn            g1  L=60821 S=16208 B=5080 J=12
+edn            g2  L=121631 S=32408 B=10157 J=22
+edn            g3  L=182441 S=48608 B=15234 J=32
+huffbench      g1  L=197127 S=69625 B=58633 J=108
+huffbench      g2  L=394243 S=139242 B=117263 J=214
+huffbench      g3  L=591359 S=208859 B=175893 J=320
+matmult-int    g1  L=62823 S=14821 B=15247 J=6
+matmult-int    g2  L=125635 S=29634 B=30491 J=10
+matmult-int    g3  L=188447 S=44447 B=45735 J=14
+md5sum         g1  L=31182 S=13020 B=6975 J=15
+md5sum         g2  L=62348 S=26030 B=13947 J=27
+md5sum         g3  L=93514 S=39040 B=20919 J=39
+nettle-aes     g1  L=36589 S=5919 B=1003 J=13
+nettle-aes     g2  L=73167 S=11830 B=2003 J=24
+nettle-aes     g3  L=109745 S=17741 B=3003 J=35
+nettle-sha256  g1  L=4507 S=965 B=288 J=19
+nettle-sha256  g2  L=9003 S=1922 B=573 J=36
+nettle-sha256  g3  L=13499 S=2879 B=858 J=53
+nsichneu       g1  L=1261 S=263 B=628 J=2
+nsichneu       g2  L=2512 S=519 B=1253 J=2
+nsichneu       g3  L=3763 S=775 B=1878 J=2
+picojpeg       g1  L=486584 S=283796 B=63844 J=28816
+picojpeg       g2  L=973157 S=567584 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851372 B=191526 J=86444
+
+=== done ===

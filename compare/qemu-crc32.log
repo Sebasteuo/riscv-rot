@@ -1,0 +1,8 @@
+
+=== crc32 on qemu-ccore, four architectural events ===
+
+crc32 g1  load=6163 store=3088 branch=1029 jalr=1027
+crc32 g2  load=12316 store=6169 branch=2055 jalr=2053
+crc32 g3  load=18469 store=9250 branch=3081 jalr=3079
+
+=== done ===
