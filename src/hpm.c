@@ -111,3 +111,37 @@ void hpm_dump(const char *label)
         uart_puts("\n");
     }
 }
+
+/*
+ * Lets the four instruction counters advance in M-mode (enable = 1) or
+ * restores the MINH filter that hpm_init() sets (enable = 0).
+ *
+ * Only the unit tests use it. They run in M-mode before the drop to
+ * U-mode, and with MINH set every one of them counts 0. Rewriting the
+ * same register keeps the same counter in QEMU, because the event is
+ * already mapped to it, so only the filter bit changes.
+ */
+void hpm_mmode_counting(int enable)
+{
+    uint64_t filter = enable ? 0 : HPM_MINH;
+
+    asm volatile("csrw 0x325, %0"
+                 :: "r"((uint64_t)HPM_EVENT_LOAD_RETIRED | filter));
+    asm volatile("csrw 0x326, %0"
+                 :: "r"((uint64_t)HPM_EVENT_STORE_RETIRED | filter));
+    asm volatile("csrw 0x327, %0"
+                 :: "r"((uint64_t)HPM_EVENT_JUMP_INDIRECT | filter));
+    asm volatile("csrw 0x328, %0"
+                 :: "r"((uint64_t)HPM_EVENT_BRANCH_TAKEN | filter));
+}
+
+/* Zero counters 3 through 8, the same starting point hpm_init() leaves */
+void hpm_reset(void)
+{
+    asm volatile("csrw 0xB03, zero");
+    asm volatile("csrw 0xB04, zero");
+    asm volatile("csrw 0xB05, zero");
+    asm volatile("csrw 0xB06, zero");
+    asm volatile("csrw 0xB07, zero");
+    asm volatile("csrw 0xB08, zero");
+}

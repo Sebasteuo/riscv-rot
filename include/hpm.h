@@ -39,6 +39,12 @@
 /* Run the counter unit tests */
 void hpm_selftest(void);
 
+/* Let the instruction counters advance in M-mode, for the unit tests */
+void hpm_mmode_counting(int enable);
+
+/* Zero counters 3 through 8 */
+void hpm_reset(void);
+
 /* Number of counters currently mapped */
 #define HPM_MAPPED_COUNTERS 6
 

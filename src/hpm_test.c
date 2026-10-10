@@ -127,10 +127,22 @@ void hpm_selftest(void)
     tests_run = 0;
     tests_passed = 0;
 
+    /*
+     * hpm_init() leaves the instruction counters filtered with MINH
+     * and these tests run in M-mode, so without this every counter
+     * reads 0. Counting in M-mode is enabled only while the tests
+     * run. Afterwards the filter is restored and the counters are
+     * zeroed, so the U-mode run starts from the same state as before.
+     */
+    hpm_mmode_counting(1);
+
     test_loads();
     test_stores();
     test_branches();
     test_indirect_jumps();
+
+    hpm_mmode_counting(0);
+    hpm_reset();
 
     uart_puts("[HPMTEST] ");
     uart_put_dec((uint64_t)tests_passed);
