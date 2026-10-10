@@ -1159,7 +1159,7 @@ void user_entry(void)
     }
     uart_puts("\n");
 
-    uart_puts("[USER] All 35 tests complete\n");
+    uart_puts("[USER] All 36 tests complete\n");
     uart_puts("[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain\n");
 
     /* ACT-14: demonstrate the high-level tpm2_api client library. Everything

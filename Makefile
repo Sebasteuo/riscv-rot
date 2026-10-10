@@ -310,10 +310,15 @@ test: $(TARGET).elf
 	else \
 		echo "  [FAIL] 'ALL TESTS PASSED' not found"; pass=0; \
 	fi; \
-	if grep -q "All 35 tests complete" test_output.log; then \
-		echo "  [OK] 35 tests completed"; \
+	if grep -q "All 36 tests complete" test_output.log; then \
+		echo "  [OK] 36 tests completed"; \
 	else \
-		echo "  [FAIL] did not complete 35 tests"; pass=0; \
+		echo "  [FAIL] did not complete 36 tests"; pass=0; \
+	fi; \
+	if grep -qF "[HPMTEST] 4 of 4 passed" test_output.log; then \
+		echo "  [OK] 4 of 4 counter unit tests passed"; \
+	else \
+		echo "  [FAIL] counter unit tests did not all pass"; pass=0; \
 	fi; \
 	tfail=$$(grep "us (limit" test_output.log | grep -c "FAIL"); \
 	if [ "$$tfail" -eq 0 ]; then \
