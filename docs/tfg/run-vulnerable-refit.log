@@ -1,0 +1,2501 @@
+==========================================
+  RISC-V Root of Trust Firmware
+  Root of Trust Active
+  Booting in M-mode...
+==========================================
+[OK] UART initialized
+[TRAP] Trap handler installed at 0x80000050
+[PMP] Configuring memory protection...
+[PMP] Region 0 (secret zone):    NO access for U-mode
+[PMP] Region 1 (Secure Storage): NO access for U-mode
+[PMP] Region 2 (UART):           R+W
+[PMP] Region 3 (shared zone):    R+W (no exec)
+[PMP] Region 4 (shared code):    R+X (no write)
+[PMP] Region 5 (U-mode memory):  R+W+X
+[PMP] No catch-all: M-mode code/stack unreachable from U-mode
+[PMP] Memory protection configured successfully
+[SS] Initializing Secure Storage (MMIO backend)...
+[SS] Device address: 0x10200000
+[SS] 0x8 slots available, each up to 0x40 bytes
+[SS] Secure Storage ready
+[PCR] Initialized 0x3 PCR registers (all zeros)
+
+[MAIN] --- Firmware integrity measurement ---
+[MAIN] Measuring .text section (code)...
+[PCR] Measured 0x5486 bytes, hash = 0x660xed0x2b0xf...
+[MAIN] Measuring .rodata section (constants)...
+[PCR] Measured 0x2623 bytes, hash = 0x5c0x350xe40xec...
+[MAIN] PCR0 = code, PCR1 = data, PCR2 = host (empty until U-mode)
+[PCR] === PCR dump ===
+[PCR]  PCR0x0: 0xec0x510x980x370xb90x9f0x510x59...
+[PCR]  PCR0x1: 0xd80xd90x3b0x790x350x7b0x710xd8...
+[PCR]  PCR0x2: 0x00x00x00x00x00x00x00x0...
+[PCR] === End dump ===
+
+[MAIN] --- Key generation ---
+[KEYGEN] First boot, deriving keys from seeds...
+[KEYGEN] EK derived: 0xff 0xd4 0x58 0x71 0x81 0x58 0x7c 0x57 ...
+[KEYGEN] SRK derived: 0xc7 0x56 0xda 0x32 0x52 0x6 0x72 0xa3 ...
+[SS] Key written to slot 0x0 (0x20 bytes)
+[SS] Key written to slot 0x1 (0x20 bytes)
+[KEYGEN] Keys stored in Secure Storage
+[SS] Key written to slot 0x2 (0x20 bytes)
+[SS] Key written to slot 0x3 (0x20 bytes)
+
+[BOOT] --- Secure Boot verification ---
+[BOOT] Checking .text integrity against golden value...
+[BOOT] PCR0 matches golden value: CODE OK
+[BOOT] Checking .rodata integrity against golden value...
+[BOOT] PCR1 matches golden value: DATA OK
+[BOOT] Secure Boot PASSED, firmware is authentic
+
+[PERF] --- Boot time measurement (SRS-P-001) ---
+[PERF] Boot time: 274810 ticks = 27481 us (limit 500 ms) -> PASS
+
+[OK] M-mode setup complete. Dropping to U-mode.
+[OK] U-mode will use shared memory to request measurements.
+
+
+[HPM] Mapping architectural events...
+[HPM]   ctr3 = PRIV_SWITCH    ctr4 = TRAP_TAKEN
+[HPM]   ctr5 = LOAD_RETIRED   ctr6 = STORE_RETIRED
+[HPM]   ctr7 = JUMP_INDIRECT  ctr8 = BRANCH_TAKEN
+[HPM] Counters ready
+
+[HPMTEST] === architectural counter unit tests ===
+[HPMTEST] LOAD_RETIRED : counted 5005, expected at least 1000  -> PASS
+[HPMTEST] STORE_RETIRED: counted 2006, expected at least 1000  -> PASS
+[HPMTEST] BRANCH_TAKEN : counted 1000, expected at least 999  -> PASS
+[HPMTEST] JUMP_INDIRECT: counted 1002, expected at least 1000  -> PASS
+[HPMTEST] 4 of 4 passed
+[ATT] Sampling armed at command boundaries
+[SWITCH] Preparing to jump to U-mode...
+[SWITCH] mstatus.MPP set to User mode (0)
+[SWITCH] mepc set to user_entry at 0x8009094e
+[SWITCH] U-mode stack at 0x800f2250
+[SWITCH] Jumping to U-mode NOW!
+=========================================
+[USER] ================================
+[USER] Running in U-mode (unprivileged)
+
+[USER] Test 1: Attempting to READ the secret zone...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x5
+[TRAP] mepc   = 0x800909b6
+[TRAP] mtval  = 0x80200000
+[TRAP] >> LOAD ACCESS FAULT
+[TRAP] >> U-mode tried to READ from a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Value we got: 0x80200000 (garbage, PMP blocked the real read)
+
+[USER] Test 2: Attempting to WRITE to the secret zone...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x7
+[TRAP] mepc   = 0x800909f6
+[TRAP] mtval  = 0x80200000
+[TRAP] >> STORE ACCESS FAULT
+[TRAP] >> U-mode tried to WRITE to a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Write was blocked by PMP
+
+[USER] ================================
+[USER] Test 3: Try MEASURE without authenticating first
+[USER] (should be rejected with NO_AUTH status)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Status: 0x6 (NO_AUTH, correct! must authenticate first)
+
+[USER] ================================
+[USER] Test 4: Send wrong password 3 times to trigger lockout
+
+[USER] Attempt 1 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x1 / 0x3
+[DA] 0x2 attempts remaining before lockout
+[TRAP] ============================
+[USER] Status: 0x4
+
+[USER] Attempt 2 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x2 / 0x3
+[DA] 0x1 attempts remaining before lockout
+[TRAP] ============================
+[USER] Status: 0x4
+
+[USER] Attempt 3 of 3 (wrong password)...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication FAILED (wrong password)
+[DA] Failed attempts: 0x3 / 0x3
+[DA] *** LOCKOUT ACTIVATED ***
+[DA] Too many failed attempts (0x3)
+[DA] System locked for 0x32 cycles
+[DA] All requests will be rejected until cooldown expires
+[TRAP] ============================
+[USER] Status: 0x3 (LOCKED! lockout activated after 3 failures)
+
+
+[USER] ================================
+[USER] Test 5: Try MEASURE while locked
+[USER] (should be rejected with LOCKED status)
+[DA] System is LOCKED (0x31 cycles remaining)
+[USER] Status: 0x3 (LOCKED, correct! system is in lockout)
+
+
+[USER] ================================
+[USER] Test 6: Waiting for lockout to expire...
+[USER] (sending dummy ecalls to tick down the counter)
+[DA] System is LOCKED (0x1 cycles remaining)
+[DA] Lockout period expired, system unlocked
+[DA] Failed attempts counter reset to 0
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090c28
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Lockout should be expired now
+
+[USER] ================================
+[USER] Test 7: Authenticate with correct password
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+[USER] Status: 0x5 (AUTH_OK! authenticated successfully)
+
+
+[USER] ================================
+[USER] Test 8: Start a session (get a temporary token)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1001
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] Status: 0x7 (SESSION_OK! got token: 0x1001)
+
+
+[USER] ================================
+[USER] Test 9: MEASURE with valid session token
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 8548 ticks = 854 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! measurement recorded in PCR2)
+
+
+[USER] ================================
+[USER] Test 10: Exhaust session TTL (use remaining calls)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5040 ticks = 504 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4979 ticks = 497 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5269 ticks = 526 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5002 ticks = 500 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5022 ticks = 502 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xd
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4984 ticks = 498 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xc
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4898 ticks = 489 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xb
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5134 ticks = 513 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xa
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5041 ticks = 504 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x9
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5051 ticks = 505 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x8
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5097 ticks = 509 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x7
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4917 ticks = 491 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x6
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4946 ticks = 494 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x5
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4927 ticks = 492 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x4
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5285 ticks = 528 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x3
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4940 ticks = 494 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x2
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4928 ticks = 492 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x1
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 4866 ticks = 486 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x0
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5040 ticks = 504 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session EXPIRED (TTL reached 0)
+[ACT] Must re-authenticate and start new session
+[TRAP] ============================
+[USER] Session expired after 0x14 additional calls
+[USER] Final status: 0x8 (SESSION_EXPIRED, correct!)
+
+
+[USER] ================================
+[USER] Test 11: Try MEASURE after session expired
+[USER] (should require re-authentication)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Request rejected: not authenticated
+[DA] Send SHARED_CMD_AUTH with correct password first
+[TRAP] ============================
+[USER] Status: 0x6 (NO_AUTH, correct! must re-authenticate)
+
+
+[USER] ================================
+[USER] Test 12: Re-authenticate + new session for NV counter tests
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+[USER] Auth status: 0x5
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1002
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] Session status: 0x7
+
+[USER] ================================
+[USER] Test 13: Read initial NV counter (should be 0)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[SS] ERROR: slot 0x5 is empty
+[NVC] Current counter value: 0x0
+[PERF] Command 0x5 response (SRS-P-002): 3895 ticks = 389 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0, counter = 0x0 (correct, starts at zero)
+
+
+[USER] ================================
+[USER] Test 14: Increment counter (expected version 0)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[SS] ERROR: slot 0x5 is empty
+[NVC] Increment request
+[NVC]   Current counter: 0x0
+[NVC]   Expected minimum version: 0x0
+[SS] Key written to slot 0x5 (0x4 bytes)
+[NVC] Counter incremented: 0x0 -> 0x1
+[PERF] Command 0x6 response (SRS-P-002): 8839 ticks = 883 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0, new counter = 0x1 (correct, 0 -> 1)
+
+
+[USER] ================================
+[USER] Test 15: Increment again (expected version 1)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[NVC] Increment request
+[NVC]   Current counter: 0x1
+[NVC]   Expected minimum version: 0x1
+[SS] Key written to slot 0x5 (0x4 bytes)
+[NVC] Counter incremented: 0x1 -> 0x2
+[PERF] Command 0x6 response (SRS-P-002): 4272 ticks = 427 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0, new counter = 0x2 (correct, 1 -> 2)
+
+
+[USER] ================================
+[USER] Test 16: Try rollback (version 0 but counter is 2)
+[USER] (should be rejected with ROLLBACK status)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[NVC] Increment request
+[NVC]   Current counter: 0x2
+[NVC]   Expected minimum version: 0x0
+[NVC] *** ROLLBACK DETECTED ***
+[NVC] Expected version 0x0 is older than counter 0x2
+[NVC] Firmware downgrade REJECTED
+[PERF] Command 0x6 response (SRS-P-002): 5026 ticks = 502 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0xa (ROLLBACK detected, correct!)
+
+
+[USER] ================================
+[USER] Test 17: Read counter (should still be 2)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[NVC] Current counter value: 0x2
+[PERF] Command 0x5 response (SRS-P-002): 1344 ticks = 134 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0, counter = 0x2 (correct, rollback did not change it)
+
+
+[USER] ================================
+[USER] Test 18: TPM2_Quote (sign PCRs with EK)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0xf4 0x73 0xaf 0x86 0x15 0xe3 0x55 0x9e ...
+[PERF] Command 0x2 response (SRS-P-002): 10062 ticks = 1006 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! PCRs signed with EK)
+[USER] Signature: 0xf4 0x73 0xaf 0x86 0x15 0xe3 0x55 0x9e ...
+
+
+[USER] ================================
+[USER] Test 19: Second quote (same PCRs = same signature)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xd
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0xf4 0x73 0xaf 0x86 0x15 0xe3 0x55 0x9e ...
+[PERF] Command 0x2 response (SRS-P-002): 7039 ticks = 703 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xc
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0xf4 0x73 0xaf 0x86 0x15 0xe3 0x55 0x9e ...
+[PERF] Command 0x2 response (SRS-P-002): 7100 ticks = 710 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Signatures match: YES (correct, PCRs unchanged)
+
+
+[USER] ================================
+[USER] Test 20: Seal secret data to current PCR state
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xb
+[SEAL] Sealing 0x10 bytes with AES-128 encryption
+[SEAL] AES key derived from PCR policy
+[SEAL] Ciphertext: 0xa1 0x2e 0xaa 0xca ...
+[SS] Key written to slot 0x6 (0x10 bytes)
+[SS] Key written to slot 0x7 (0x20 bytes)
+[SEAL] Encrypted data in slot 0x6, policy in slot 0x7
+[PERF] Command 0x7 response (SRS-P-002): 37848 ticks = 3784 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! data sealed to PCR state)
+
+
+[USER] ================================
+[USER] Test 21: Unseal data (PCRs unchanged)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xa
+[SEAL] Unseal request, checking PCR policy...
+[SEAL] PCR policy matches, data decrypted with AES-128
+[SEAL] Plaintext recovered (0x10 bytes)
+[PERF] Command 0x8 response (SRS-P-002): 27605 ticks = 2760 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! data unsealed)
+[USER] Data matches original: YES (correct!)
+
+
+[USER] ================================
+[USER] Test 22: Modify PCR2 then try unseal
+[USER] (simulates tampered firmware, should fail)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x9
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x20 bytes, target PCR: 0x2
+[PCR] Measured 0x20 bytes, hash = 0x780x640x6e0xdb...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5020 ticks = 502 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] PCR2 modified by extra measurement
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x8
+[SEAL] Unseal request, checking PCR policy...
+[SEAL] *** PCR MISMATCH ***
+[SEAL] Cannot derive correct AES key, data stays encrypted
+[PERF] Command 0x8 response (SRS-P-002): 4606 ticks = 460 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Unseal status: 0xb (PCR_MISMATCH, correct! data stays locked)
+
+
+[USER] ================================
+[USER] Test 23: Measure REAL firmware binary (not dummy data)
+[USER] Sending first 256 bytes of actual firmware code
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x7
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x100 bytes, target PCR: 0x2
+[PCR] Measured 0x100 bytes, hash = 0x5c0x540x200x4b...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 7014 ticks = 701 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! real firmware code measured into PCR2)
+
+[USER] First 8 bytes of real firmware: 0x79 0x71 0x22 0xf4 0x0 0x18 0xaa 0x87 ...
+
+[USER] ================================
+[USER] Test 24: Measure second chunk of firmware (offset +512)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x6
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x80 bytes, target PCR: 0x2
+[PCR] Measured 0x80 bytes, hash = 0xa30xf00x950xa5...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5825 ticks = 582 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x0 (OK! second chunk measured, PCR2 extended)
+
+
+[USER] ================================
+[USER] Test 25: Validate firmware ELF header
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x5
+[ELF] Validating ELF header...
+[ELF] Magic number: OK (7f 45 4c 46)
+[ELF] Class: ELF64 (64-bit)
+[ELF] Endianness: little-endian
+[ELF] Architecture: RISC-V (0xf3)
+[ELF] ELF header validation PASSED
+[PERF] Command 0x9 response (SRS-P-002): 6378 ticks = 637 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0xe (ELF_OK! valid RISC-V 64-bit binary)
+
+
+[USER] ================================
+[USER] Test 26: Validate bad ELF (ARM instead of RISC-V)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x4
+[ELF] Validating ELF header...
+[ELF] Magic number: OK (7f 45 4c 46)
+[ELF] Class: ELF64 (64-bit)
+[ELF] Endianness: little-endian
+[ELF] *** WRONG ARCHITECTURE ***
+[ELF] Expected: 0xf3 (RISC-V), got: 0xb7
+[PERF] Command 0x9 response (SRS-P-002): 4251 ticks = 425 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0xd (BAD_ELF, correct! ARM binary rejected)
+
+
+[USER] ================================
+[USER] Test 27: Register golden hash + verify section
+[USER] Step 1: Check section without whitelist (should reject)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x3
+[ELF] Section hash: 0x87 0x79 0xe0 0x65 ...
+[ELF] *** NO MATCH in whitelist ***
+[ELF] Section REJECTED (unknown binary)
+[PERF] Command 0xa response (SRS-P-002): 6022 ticks = 602 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x10 (REJECTED, correct! not in whitelist yet)
+[USER] Step 2: Register golden hash for first 64 bytes of firmware
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x2
+[ELF] Registered golden hash #0x0: 0x87 0x79 0xe0 0x65 ...
+[PERF] Command 0xb response (SRS-P-002): 4498 ticks = 449 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x12 (REGISTERED in whitelist)
+[USER] Step 3: Check same section again (should match now)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x1
+[ELF] Section hash: 0x87 0x79 0xe0 0x65 ...
+[ELF] MATCH with whitelist entry #0x0
+[ELF] Section APPROVED for loading
+[PERF] Command 0xa response (SRS-P-002): 5059 ticks = 505 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0xf (MATCH! section approved for loading)
+
+
+[USER] ================================
+[USER] Re-authenticating for supply chain tests
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1003
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[USER] New session: 0x7
+
+[USER] ================================
+[USER] Test 28: Register 3 supply chain vendors
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[CHAIN] Registered vendor 0x0x1 with key: 0xaa 0xbb 0xcc 0xdd ...
+[PERF] Command 0xc response (SRS-P-002): 4814 ticks = 481 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Vendor 0x1 (BootCorp): 0x13
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[CHAIN] Registered vendor 0x0x2 with key: 0x11 0x22 0x33 0x44 ...
+[PERF] Command 0xc response (SRS-P-002): 1953 ticks = 195 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Vendor 0x2 (KernelInc): 0x13
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[CHAIN] Registered vendor 0x0x3 with key: 0xde 0xad 0xbe 0xef ...
+[PERF] Command 0xc response (SRS-P-002): 1940 ticks = 194 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Vendor 0x3 (AppDev): 0x13
+
+[USER] ================================
+[USER] Test 29: Verify correctly signed bootloader
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[CHAIN] Verifying component from vendor 0x0x1 (0x10 bytes)
+[CHAIN] Signature VALID
+[CHAIN] Component authenticated from vendor 0x0x1
+[PERF] Command 0xd response (SRS-P-002): 8770 ticks = 877 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x14 (CHAIN_OK! bootloader authenticated)
+
+
+[USER] ================================
+[USER] Test 30: Verify tampered component (bad signature)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[CHAIN] Verifying component from vendor 0x0x1 (0x10 bytes)
+[CHAIN] *** SIGNATURE MISMATCH ***
+[CHAIN] Component may be TAMPERED or from wrong vendor
+[PERF] Command 0xd response (SRS-P-002): 5601 ticks = 560 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x15 (CHAIN_FAIL, correct! tampered component rejected)
+
+
+[USER] ================================
+[USER] Test 31: Verify from unregistered vendor (0xFF)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[CHAIN] Verifying component from vendor 0x0xff (0x8 bytes)
+[CHAIN] *** UNKNOWN VENDOR ***
+[CHAIN] Vendor 0x0xff is not registered
+[PERF] Command 0xd response (SRS-P-002): 3368 ticks = 336 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x16 (UNKNOWN_VENDOR, correct! vendor 0xFF not registered)
+
+
+[USER] ================================
+
+[USER] Test 32: Attempting to READ M-mode code at 0x80000000...
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x5
+[TRAP] mepc   = 0x8009289c
+[TRAP] mtval  = 0x80000000
+[TRAP] >> LOAD ACCESS FAULT
+[TRAP] >> U-mode tried to READ from a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Byte we got: 0x0 (garbage, PMP blocked the read of the crypto core code)
+
+[USER] ================================
+[USER] Test 33: Attempting to WRITE pmpcfg0 from U-mode...
+[USER] (must trap as illegal instruction, PMP stays locked)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x2
+[TRAP] mepc   = 0x800928ea
+[TRAP] mtval  = 0x3a001073
+[TRAP] >> ILLEGAL INSTRUCTION
+[TRAP] ============================
+[USER] Survived: the write trapped, PMP config unchanged
+
+[USER] ================================
+[USER] Test 35b: 2000 U-mode memory accesses
+[USER] Workload done
+
+[USER] ================================
+[USER] Test 36: Attempting to READ mhpmcounter5 from U-mode...
+[USER] (event counters must not be visible to U-mode)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x2
+[TRAP] mepc   = 0x800929a8
+[TRAP] mtval  = 0xb05027f3
+[TRAP] >> ILLEGAL INSTRUCTION
+[TRAP] ============================
+[USER] Survived: the read trapped, counters stay in M-mode
+
+[USER] ================================
+[USER] Test 34: Attempting to READ Secure Storage at 0x10200000...
+[USER] (where EK/SRK live, must give access fault)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x5
+[TRAP] mepc   = 0x800929ec
+[TRAP] mtval  = 0x10200000
+[TRAP] >> LOAD ACCESS FAULT
+[TRAP] >> U-mode tried to READ from a protected address
+[TRAP] >> PMP blocked it, secret is safe
+[TRAP] ============================
+[USER] Value we got: 0x10200000 (garbage, PMP blocked the read of EK/SRK storage)
+
+[USER] ================================
+[USER] Test 35: Send an unknown command (0xEE) to the shared zone
+[USER] (should be rejected with ERROR status)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80090006
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[CORE] ERROR: unknown command 0xee
+[PERF] Command 0xee response (SRS-P-002): 1008 ticks = 100 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[USER] Status: 0x1 (ERROR, correct! unknown command rejected)
+
+[USER] All 36 tests complete
+[USER] Full RoT: DA+ACT+NVC+Quote+Seal+AES+ELF+SupplyChain
+
+[APP] === Embench, varied intensity ===
+[APP] aha-mont64 g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x00x10x20x3...
+[PERF] Command 0xe response (SRS-P-002): 5307 ticks = 530 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 4650,2272,692,25,1,2
+[PERF] Command 0xf response (SRS-P-002): 11880 ticks = 1188 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] aha-mont64 g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x1f0x200x210x22...
+[PERF] Command 0xe response (SRS-P-002): 1432 ticks = 143 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 9277,4530,1383,45,1,2
+[PERF] Command 0xf response (SRS-P-002): 1476 ticks = 147 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] aha-mont64 g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x3e0x3f0x400x41...
+[PERF] Command 0xe response (SRS-P-002): 1018 ticks = 101 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 13904,6788,2074,65,1,2
+[PERF] Command 0xf response (SRS-P-002): 1419 ticks = 141 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] crc32 g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x5d0x5e0x5f0x60...
+[PERF] Command 0xe response (SRS-P-002): 993 ticks = 99 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 1046878,524122,174420,174425,1,2
+[PERF] Command 0xf response (SRS-P-002): 1599 ticks = 159 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] crc32 g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x7c0x7d0x7e0x7f...
+[PERF] Command 0xe response (SRS-P-002): 1017 ticks = 101 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 2092888,1047892,348670,348845,1,2
+[PERF] Command 0xf response (SRS-P-002): 1535 ticks = 153 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] crc32 g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x9b0x9c0x9d0x9e...
+[PERF] Command 0xe response (SRS-P-002): 968 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 3138898,1571662,522920,523265,1,2
+[PERF] Command 0xf response (SRS-P-002): 1544 ticks = 154 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] depthconv g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xba0xbb0xbc0xbd...
+[PERF] Command 0xe response (SRS-P-002): 1020 ticks = 102 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 10163,3980,359,341,1,2
+[PERF] Command 0xf response (SRS-P-002): 1426 ticks = 142 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] depthconv g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xd90xda0xdb0xdc...
+[PERF] Command 0xe response (SRS-P-002): 960 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 20304,7946,717,677,1,2
+[PERF] Command 0xf response (SRS-P-002): 1343 ticks = 134 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] depthconv g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xf80xf90xfa0xfb...
+[PERF] Command 0xe response (SRS-P-002): 954 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 30445,11912,1075,1013,1,2
+[PERF] Command 0xf response (SRS-P-002): 1403 ticks = 140 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] edn g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x170x180x190x1a...
+[PERF] Command 0xe response (SRS-P-002): 1022 ticks = 102 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 66444,17028,4949,15,1,2
+[PERF] Command 0xf response (SRS-P-002): 1370 ticks = 137 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] edn g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x360x370x380x39...
+[PERF] Command 0xe response (SRS-P-002): 965 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 132866,34042,9897,25,1,2
+[PERF] Command 0xf response (SRS-P-002): 1399 ticks = 139 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] edn g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x550x560x570x58...
+[PERF] Command 0xe response (SRS-P-002): 958 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 199288,51056,14845,35,1,2
+[PERF] Command 0xf response (SRS-P-002): 1404 ticks = 140 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] huffbench g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x740x750x760x77...
+[PERF] Command 0xe response (SRS-P-002): 959 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 278949,83225,42404,111,1,2
+[PERF] Command 0xf response (SRS-P-002): 1467 ticks = 146 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] huffbench g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x930x940x950x96...
+[PERF] Command 0xe response (SRS-P-002): 894 ticks = 89 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 557876,166436,84807,217,1,2
+[PERF] Command 0xf response (SRS-P-002): 1445 ticks = 144 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] huffbench g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xb20xb30xb40xb5...
+[PERF] Command 0xe response (SRS-P-002): 872 ticks = 87 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 836803,249647,127210,323,1,2
+[PERF] Command 0xf response (SRS-P-002): 1458 ticks = 145 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] matmult-int g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xd10xd20xd30xd4...
+[PERF] Command 0xe response (SRS-P-002): 972 ticks = 97 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 107646,21241,14822,9,1,2
+[PERF] Command 0xf response (SRS-P-002): 1425 ticks = 142 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] matmult-int g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xf00xf10xf20xf3...
+[PERF] Command 0xe response (SRS-P-002): 945 ticks = 94 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 215270,42468,29643,13,1,2
+[PERF] Command 0xf response (SRS-P-002): 1413 ticks = 141 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] matmult-int g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xf0x100x110x12...
+[PERF] Command 0xe response (SRS-P-002): 950 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 322894,63695,44464,17,1,2
+[PERF] Command 0xf response (SRS-P-002): 1424 ticks = 142 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] md5sum g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x2e0x2f0x300x31...
+[PERF] Command 0xe response (SRS-P-002): 912 ticks = 91 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 48317,15659,6181,18,1,2
+[PERF] Command 0xf response (SRS-P-002): 1409 ticks = 140 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] md5sum g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x4d0x4e0x4f0x50...
+[PERF] Command 0xe response (SRS-P-002): 972 ticks = 97 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 96604,31299,12361,30,1,2
+[PERF] Command 0xf response (SRS-P-002): 1403 ticks = 140 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] md5sum g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x6c0x6d0x6e0x6f...
+[PERF] Command 0xe response (SRS-P-002): 961 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 144891,46939,18541,42,1,2
+[PERF] Command 0xf response (SRS-P-002): 1393 ticks = 139 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-aes g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x8b0x8c0x8d0x8e...
+[PERF] Command 0xe response (SRS-P-002): 967 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 36600,5925,835,16,1,2
+[PERF] Command 0xf response (SRS-P-002): 1280 ticks = 128 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-aes g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xaa0xab0xac0xad...
+[PERF] Command 0xe response (SRS-P-002): 907 ticks = 90 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 73178,11836,1669,27,1,2
+[PERF] Command 0xf response (SRS-P-002): 1374 ticks = 137 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-aes g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xc90xca0xcb0xcc...
+[PERF] Command 0xe response (SRS-P-002): 965 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 109756,17747,2503,38,1,2
+[PERF] Command 0xf response (SRS-P-002): 1393 ticks = 139 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-sha256 g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xe80xe90xea0xeb...
+[PERF] Command 0xe response (SRS-P-002): 928 ticks = 92 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 5961,1225,267,22,1,2
+[PERF] Command 0xf response (SRS-P-002): 1353 ticks = 135 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-sha256 g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x70x80x90xa...
+[PERF] Command 0xe response (SRS-P-002): 924 ticks = 92 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 11900,2436,533,39,1,2
+[PERF] Command 0xf response (SRS-P-002): 1342 ticks = 134 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nettle-sha256 g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x260x270x280x29...
+[PERF] Command 0xe response (SRS-P-002): 959 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 17839,3647,799,56,1,2
+[PERF] Command 0xf response (SRS-P-002): 1291 ticks = 129 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nsichneu g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x450x460x470x48...
+[PERF] Command 0xe response (SRS-P-002): 977 ticks = 97 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 1272,269,128,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1244 ticks = 124 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nsichneu g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x640x650x660x67...
+[PERF] Command 0xe response (SRS-P-002): 934 ticks = 93 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 2523,525,254,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1321 ticks = 132 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] nsichneu g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x830x840x850x86...
+[PERF] Command 0xe response (SRS-P-002): 973 ticks = 97 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 3774,781,380,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1284 ticks = 128 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] picojpeg g1
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xa20xa30xa40xa5...
+[PERF] Command 0xe response (SRS-P-002): 873 ticks = 87 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 490603,284393,54285,28819,1,2
+[PERF] Command 0xf response (SRS-P-002): 1463 ticks = 146 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] picojpeg g2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xc10xc20xc30xc4...
+[PERF] Command 0xe response (SRS-P-002): 920 ticks = 92 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 981184,568772,108569,57633,1,2
+[PERF] Command 0xf response (SRS-P-002): 1514 ticks = 151 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] picojpeg g3
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xe00xe10xe20xe3...
+[PERF] Command 0xe response (SRS-P-002): 965 ticks = 96 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 1471765,853151,162853,86447,1,2
+[PERF] Command 0xf response (SRS-P-002): 1515 ticks = 151 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[APP] === varied done ===
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x800942a6
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[PERF] Command 0x10 response (SRS-P-002): 3196 ticks = 319 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[COST] windows=33 attest_us=7772 work_us=3824090 class_us=5605
+
+[ATK] === adversarial workloads ===
+[ATK] none
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xff0x00x10x2...
+[PERF] Command 0xe response (SRS-P-002): 958 ticks = 95 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 281,117,49,7,1,2
+[PERF] Command 0xf response (SRS-P-002): 1487 ticks = 148 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[ATK]   diverted: no
+[ATK] redirect
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x1e0x1f0x200x21...
+[PERF] Command 0xe response (SRS-P-002): 1053 ticks = 105 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: branch ratio off
+[ATT] Window closed: 1565,698,336,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1694 ticks = 169 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[ATK]   diverted: YES
+[ATK] === done ===
+[ATK]   diverted: YES
+[ATK] small
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x3d0x3e0x3f0x40...
+[PERF] Command 0xe response (SRS-P-002): 1054 ticks = 105 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Window closed: 461,178,80,6,1,2
+[PERF] Command 0xf response (SRS-P-002): 1500 ticks = 150 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[ATK]   diverted: no
+[ATK] long
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x5c0x5d0x5e0x5f...
+[PERF] Command 0xe response (SRS-P-002): 1047 ticks = 104 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: branch ratio off
+[ATT] Window closed: 3677,1466,720,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1438 ticks = 143 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[ATK]   diverted: YES
+[ATK] === done ===
+[ATK]   diverted: YES
+[ATK] reuse
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093cf4
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x7b0x7c0x7d0x7e...
+[PERF] Command 0xe response (SRS-P-002): 1048 ticks = 104 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093d48
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Window closed: 829,330,152,5,1,2
+[PERF] Command 0xf response (SRS-P-002): 1445 ticks = 144 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[ATK]   diverted: YES
+[ATK] === done ===
+[ATK]   diverted: YES
+[ATK] === done ===
+
+[USER] ================================
+[DEMO] tpm2_api client (ACT-14): high-level TPM 2.0 API
+[DEMO] Every call below goes through tpm2_api.h, no raw writes
+
+[DEMO] TPM2_Startup()
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[DA] Processing AUTH request
+[DA]   Password length: 0x10 bytes
+[DA] Authentication SUCCESSFUL
+[DA] Failed attempts counter reset to 0
+[DA] Services are now unlocked for this session
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Session started
+[ACT]   Token: 0x1004
+[ACT]   TTL: 0x14 service calls
+[TRAP] ============================
+[DEMO] rc = 0x0 (SUCCESS, session open)
+
+[DEMO] TPM2_PCR_Extend(PCR2, payload)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x13
+[CORE] Processing MEASURE command
+[CORE]   Data size: 0x10 bytes, target PCR: 0x2
+[PCR] Measured 0x10 bytes, hash = 0x120xbf0xe90x67...
+[CORE] Measurement complete
+[PERF] Command 0x1 response (SRS-P-002): 5176 ticks = 517 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] rc = 0x0 (SUCCESS, PCR2 extended)
+
+[DEMO] TPM2_Seal(secret) then TPM2_Unseal()
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x12
+[SEAL] Sealing 0x10 bytes with AES-128 encryption
+[SEAL] AES key derived from PCR policy
+[SEAL] Ciphertext: 0xbe 0xac 0x83 0x6f ...
+[SS] Key written to slot 0x6 (0x10 bytes)
+[SS] Key written to slot 0x7 (0x20 bytes)
+[SEAL] Encrypted data in slot 0x6, policy in slot 0x7
+[PERF] Command 0x7 response (SRS-P-002): 20761 ticks = 2076 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] Seal rc = 0x0 (SUCCESS)
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x11
+[SEAL] Unseal request, checking PCR policy...
+[SEAL] PCR policy matches, data decrypted with AES-128
+[SEAL] Plaintext recovered (0x10 bytes)
+[PERF] Command 0x8 response (SRS-P-002): 14095 ticks = 1409 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] Unseal rc = 0x0 (SUCCESS)
+[DEMO] Recovered data matches original: YES (seal/unseal round-trip OK)
+
+[DEMO] TPM2_NV_Read() then TPM2_NV_Increment()
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0x10
+[NVC] Current counter value: 0x2
+[PERF] Command 0x5 response (SRS-P-002): 1335 ticks = 133 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] NV_Read rc = 0x0, counter = 0x2
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xf
+[NVC] Increment request
+[NVC]   Current counter: 0x2
+[NVC]   Expected minimum version: 0x2
+[SS] Key written to slot 0x5 (0x4 bytes)
+[NVC] Counter incremented: 0x2 -> 0x3
+[PERF] Command 0x6 response (SRS-P-002): 4321 ticks = 432 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] NV_Increment rc = 0x0, new counter = 0x3 (SUCCESS)
+
+[DEMO] TPM2_Quote()
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80092f1c
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ACT] Token valid, TTL remaining: 0xe
+[QUOTE] Generating PCR attestation quote
+[QUOTE] PCR values concatenated (96 bytes)
+[QUOTE] Signed with EK using HMAC-SHA256
+[QUOTE] Signature: 0x76 0xac 0x2a 0x11 0x7 0xf6 0xb6 0xf2 ...
+[PERF] Command 0x2 response (SRS-P-002): 6854 ticks = 685 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[DEMO] rc = 0x0 (SUCCESS)
+[DEMO] Signature (first 8 bytes): 0x76 0xac 0x2a 0x11 0x7 0xf6 0xb6 0xf2 ...
+
+[DEMO] TPM2_Shutdown() (closes session, hands back to M-mode)
+[USER] Handing control back to M-mode
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x8009322a
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[TRAP] >> U-mode finished, generating final report
+
+==========================================
+  Back in M-mode - Final system state
+==========================================
+[SS] Key written to slot 0x4 (0x20 bytes)
+
+[MAIN] --- Final PCR state ---
+[MAIN] PCR0: firmware .text measurement
+[MAIN] PCR1: firmware .rodata measurement
+[MAIN] PCR2: host binary measurements (from U-mode requests)
+[PCR] === PCR dump ===
+[PCR]  PCR0x0: 0xec0x510x980x370xb90x9f0x510x59...
+[PCR]  PCR0x1: 0xd80xd90x3b0x790x350x7b0x710xd8...
+[PCR]  PCR0x2: 0xa0x5f0xca0x3b0xc30xbb0x190x53...
+[PCR] === End dump ===
+
+[MAIN] --- Final Secure Storage state ---
+[SS] === Storage dump ===
+[SS]  Slot 0x0: 0x20 bytes = 0xff 0xd4 0x58 0x71 0x81 0x58 0x7c 0x57 ...
+[SS]  Slot 0x1: 0x20 bytes = 0xc7 0x56 0xda 0x32 0x52 0x6 0x72 0xa3 ...
+[SS]  Slot 0x2: 0x20 bytes = 0xec 0x51 0x98 0x37 0xb9 0x9f 0x51 0x59 ...
+[SS]  Slot 0x3: 0x20 bytes = 0xd8 0xd9 0x3b 0x79 0x35 0x7b 0x71 0xd8 ...
+[SS]  Slot 0x4: 0x20 bytes = 0xa 0x5f 0xca 0x3b 0xc3 0xbb 0x19 0x53 ...
+[SS]  Slot 0x5: 0x4 bytes = 0x0 0x0 0x0 0x3 
+[SS]  Slot 0x6: 0x10 bytes = 0xbe 0xac 0x83 0x6f 0xa4 0xfe 0x61 0x9b ...
+[SS]  Slot 0x7: 0x20 bytes = 0x87 0x53 0x69 0xcc 0x1f 0x22 0x9c 0x6b ...
+[SS] === End dump ===
+
+[MAIN] --- Architectural event counters ---
+[HPM] === final state ===
+[HPM]  PRIV_SWITCH   (ctr3): 424
+[HPM]  TRAP_TAKEN    (ctr4): 212
+[HPM]  LOAD_RETIRED  (ctr5): 12741250
+[HPM]  STORE_RETIRED (ctr6): 5844629
+[HPM]  JUMP_INDIRECT (ctr7): 1235301
+[HPM]  BRANCH_TAKEN  (ctr8): 1817869
+
+[ATT] === samples (205 windows) ===
+[ATT] cmd,load,store,branch,jump,trap,priv
+[ATT] 1,3808,2776,508,450,3,6
+[ATT] 3,1950,1353,271,218,1,2
+[ATT] 3,765,465,124,69,1,2
+[ATT] 3,765,465,124,69,1,2
+[ATT] 1,1858,1292,271,203,1,2
+[ATT] 1,1785,1290,251,214,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 1,5,4,1,0,1,2
+[ATT] 3,1171,818,144,131,1,2
+[ATT] 4,1379,988,200,163,1,2
+[ATT] 1,1570,1030,261,153,1,2
+[ATT] 1,1552,1060,233,163,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,180,78,33,2,1,2
+[ATT] 1,2351,1616,360,252,1,2
+[ATT] 3,1630,1113,231,178,1,2
+[ATT] 4,326,199,70,30,1,2
+[ATT] 5,1136,804,168,130,1,2
+[ATT] 6,1557,1063,249,169,1,2
+[ATT] 6,1508,1028,243,163,1,2
+[ATT] 6,1944,1355,297,218,1,2
+[ATT] 5,1277,911,187,149,1,2
+[ATT] 2,1580,1082,253,173,1,2
+[ATT] 2,3025,1759,645,242,1,2
+[ATT] 2,243,76,32,2,1,2
+[ATT] 7,1798,1067,263,158,1,2
+[ATT] 8,1254,893,183,146,1,2
+[ATT] 1,2322,1515,346,232,1,2
+[ATT] 8,355,266,42,45,1,2
+[ATT] 1,4037,1954,531,238,1,2
+[ATT] 1,4308,2208,786,284,1,2
+[ATT] 9,1924,1226,323,157,1,2
+[ATT] 9,1971,1263,329,163,1,2
+[ATT] 10,2350,1507,328,227,1,2
+[ATT] 11,8844,2990,653,141,1,2
+[ATT] 10,1430,819,213,111,1,2
+[ATT] 3,1452,981,209,155,1,2
+[ATT] 4,7,6,0,2,1,2
+[ATT] 12,1168,786,175,121,1,2
+[ATT] 12,514,301,95,40,1,2
+[ATT] 12,522,307,96,41,1,2
+[ATT] 13,17599,5549,1352,145,1,2
+[ATT] 13,1795,1174,281,165,1,2
+[ATT] 13,1834,1223,284,176,1,2
+[ATT] 3,17141,10425,2340,1229,5,10
+[ATT] 238,7,4,0,2,1,2
+[ATT] 14,1991,1414,279,231,1,2
+[ATT] 15,4650,2272,692,25,1,2
+[ATT] 14,308,191,39,31,1,2
+[ATT] 15,9277,4530,1383,45,1,2
+[ATT] 14,308,191,39,31,1,2
+[ATT] 15,13904,6788,2074,65,1,2
+[ATT] 14,268,160,35,26,1,2
+[ATT] 15,1046878,524122,174420,174425,1,2
+[ATT] 14,265,158,34,26,1,2
+[ATT] 15,2092888,1047892,348670,348845,1,2
+[ATT] 14,265,158,34,26,1,2
+[ATT] 15,3138898,1571662,522920,523265,1,2
+[ATT] 14,300,184,39,30,1,2
+[ATT] 15,10163,3980,359,341,1,2
+[ATT] 14,297,182,38,30,1,2
+[ATT] 15,20304,7946,717,677,1,2
+[ATT] 14,297,182,38,30,1,2
+[ATT] 15,30445,11912,1075,1013,1,2
+[ATT] 14,252,148,33,24,1,2
+[ATT] 15,66444,17028,4949,15,1,2
+[ATT] 14,249,146,32,24,1,2
+[ATT] 15,132866,34042,9897,25,1,2
+[ATT] 14,249,146,32,24,1,2
+[ATT] 15,199288,51056,14845,35,1,2
+[ATT] 14,300,184,39,30,1,2
+[ATT] 15,278949,83225,42404,111,1,2
+[ATT] 14,297,182,38,30,1,2
+[ATT] 15,557876,166436,84807,217,1,2
+[ATT] 14,297,182,38,30,1,2
+[ATT] 15,836803,249647,127210,323,1,2
+[ATT] 14,6040,3481,881,833,1,2
+[ATT] 15,107646,21241,14822,9,1,2
+[ATT] 14,6037,3479,880,833,1,2
+[ATT] 15,215270,42468,29643,13,1,2
+[ATT] 14,6037,3479,880,833,1,2
+[ATT] 15,322894,63695,44464,17,1,2
+[ATT] 14,276,166,36,27,1,2
+[ATT] 15,48317,15659,6181,18,1,2
+[ATT] 14,273,164,35,27,1,2
+[ATT] 15,96604,31299,12361,30,1,2
+[ATT] 14,273,164,35,27,1,2
+[ATT] 15,144891,46939,18541,42,1,2
+[ATT] 14,308,190,40,31,1,2
+[ATT] 15,36600,5925,835,16,1,2
+[ATT] 14,305,188,39,31,1,2
+[ATT] 15,73178,11836,1669,27,1,2
+[ATT] 14,305,188,39,31,1,2
+[ATT] 15,109756,17747,2503,38,1,2
+[ATT] 14,332,208,43,34,1,2
+[ATT] 15,5961,1225,267,22,1,2
+[ATT] 14,329,206,42,34,1,2
+[ATT] 15,11900,2436,533,39,1,2
+[ATT] 14,329,206,42,34,1,2
+[ATT] 15,17839,3647,799,56,1,2
+[ATT] 14,292,178,38,29,1,2
+[ATT] 15,1272,269,128,5,1,2
+[ATT] 14,289,176,37,29,1,2
+[ATT] 15,2523,525,254,5,1,2
+[ATT] 14,289,176,37,29,1,2
+[ATT] 15,3774,781,380,5,1,2
+[ATT] 14,292,178,38,29,1,2
+[ATT] 15,490603,284393,54285,28819,1,2
+[ATT] 14,289,176,37,29,1,2
+[ATT] 15,981184,568772,108569,57633,1,2
+[ATT] 14,289,176,37,29,1,2
+[ATT] 15,1471765,853151,162853,86447,1,2
+[ATT] 16,223,169,26,30,1,2
+[ATT] 14,1266,864,169,126,1,2
+[ATT] 15,281,117,49,7,1,2
+[ATT] 14,430,286,54,46,1,2
+[ATT] 15,1565,698,336,5,1,2
+[ATT] 14,766,534,94,90,1,2
+[ATT] 15,461,178,80,6,1,2
+[ATT] 14,398,262,50,42,1,2
+[ATT] 15,3677,1466,720,5,1,2
+[ATT] 14,763,533,92,90,1,2
+[ATT] 15,829,330,152,5,1,2
+[ATT] 3,2335,1673,282,282,1,2
+[ATT] 4,6,4,1,1,1,2
+[ATT] 1,927,581,143,87,1,2
+[ATT] 7,976,617,150,96,1,2
+[ATT] 8,447,282,94,40,1,2
+[ATT] 5,1617,1043,248,165,1,2
+[ATT] 6,605,349,132,51,1,2
+[ATT] 2,1018,652,204,92,1,2
+[ATT] === end ===
+
+==========================================
+  ALL TESTS PASSED
+  Root of Trust operational
+==========================================
+qemu-system-riscv64: terminating on signal 15 from pid 485740 ()

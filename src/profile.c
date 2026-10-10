@@ -30,7 +30,7 @@
 
 static const profile_t profiles[] = {
     /*                    store branch  jump   tol  */
-    /*  0: vulnerable */ {  4157,  1720,  250, 1000 },
+    /*  0: vulnerable */ {  4163,  1743,  249, 1000 },
     /*  1: aha-mont64 */ {  4883,  1489,   49, 2857 },
     /*  2: crc32      */ {  5006,  1665, 1666, 1000 },
     /*  3: depthconv  */ {  3913,   353,  333, 1000 },

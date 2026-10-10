@@ -25,7 +25,7 @@ FLOOR = 25          # absolute floor, parts per SCALE, matches within()
 
 # Profiles as compiled into src/profile.c
 PROFILES = [
-    ("vulnerable",   3849, 1549,  234, 1000),
+    ("vulnerable",   4163, 1743,  249, 1000),
     ("aha-mont64",   4883, 1489,   49, 2857),
     ("crc32",        5006, 1665, 1666, 1000),
     ("depthconv",    3913,  353,  333, 1000),
