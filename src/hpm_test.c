@@ -7,7 +7,7 @@
  * Each test runs a workload with a known number of events, reads the
  * counter before and after, and checks the delta.
  *
- * The expected values are lower bounds rather than exact figures: the
+ * The expected values are lower bounds rather than exact figures. The
  * loop itself, the CSR reads and the bookkeeping also retire loads,
  * stores and branches. Demanding an exact match would make the tests
  * brittle without making them stronger.

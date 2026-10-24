@@ -132,7 +132,7 @@
  * The token is valid for a limited number of ecall cycles.
  * Once expired, the host loses access and must re-authenticate.
  *
- * This is like giving a maintenance engineer temporary access:
+ * This is like giving a maintenance engineer temporary access, where
  * they get a badge that works for 30 minutes, then it stops
  * working and they have to check in again at the front desk.
  *
@@ -162,12 +162,12 @@
  * Monotonic NV Counters
  *
  * A counter that can only go up, never down. Stored in Secure
- * Storage slot 5 so it survives reboots. Used for anti-rollback:
+ * Storage slot 5 so it survives reboots. used for anti-rollback, where
  * each firmware version has a version number, and if someone tries
  * to load a firmware with a version number lower than the counter,
  * the crypto core rejects it.
  *
- * Think of it like the odometer in a car: it only goes forward.
+ * Think of it like the odometer in a car. It only goes forward.
  * If someone tries to roll it back, you know something is wrong.
  *
  * SHARED_CMD_NV_READ: read the current counter value. The crypto
@@ -268,7 +268,7 @@
  * verifies the signature of each component before allowing it.
  *
  * This follows the model described in NIST SP 800-193 (Platform
- * Firmware Resiliency Guidelines): every piece of firmware must
+ * Firmware Resiliency Guidelines). Every piece of firmware must
  * be traceable to an authorized supplier.
  *
  * SHARED_CMD_CHAIN_ADD_VENDOR: register a vendor key (16 bytes).
@@ -290,7 +290,7 @@
  * counter deltas accumulated in between, together with the nonce and
  * the PCR state, signed by the crypto core.
  *
- * The nonce is what makes the response fresh: a replayed report from a
+ * The nonce is what makes the response fresh. A replayed report from a
  * healthy moment carries the wrong nonce and is rejected. And if the
  * device does not answer within the verifier's timeout, it is treated
  * as compromised, which covers the client that simply never calls.

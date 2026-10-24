@@ -7,7 +7,7 @@
  *
  * Compiled with -fno-stack-protector so the overflow is not caught
  * before it can divert control. The rest of the firmware is built the
- * same way, so this is not a special case: it reflects how the
+ * same way, so this is not a special case. It reflects how the
  * platform is actually built.
  */
 
@@ -42,10 +42,10 @@ static uint64_t recover_ra;
  * A function the program calls on its own.
  *
  * This is the target for the code-reuse scenario. Unlike
- * unreachable_path(), reaching it proves nothing by itself: the
+ * unreachable_path(), reaching it proves nothing by itself. The
  * program gets here legitimately during normal operation. That is
  * exactly what makes it the hard case. A classifier that keys on
- * "reached somewhere it should not" has nothing to work with; only
+ * "reached somewhere it should not" has nothing to work with. Only
  * the shape of the execution can tell the two apart.
  */
 static volatile int reuse_active;
@@ -279,7 +279,7 @@ static void run_reuse(void)
     /*
      * Divert into a function the program already calls, rather than
      * into one nothing reaches. This is the shape of a code-reuse
-     * attack, and it is deliberately the hardest case: the target is
+     * attack, and it is deliberately the hardest case. The target is
      * legitimate code, so the counter signature stays closer to
      * nominal than a jump into dead code would.
      *

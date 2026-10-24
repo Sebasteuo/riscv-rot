@@ -2,7 +2,7 @@
  * main.c - Main entry point for the Root of Trust firmware
  * ==========================================================================
  *
- * Boot sequence for the Root of Trust: sets up PMP, derives keys,
+ * Boot sequence for the Root of Trust. It sets up PMP, derives keys,
  * measures firmware integrity, verifies Secure Boot, then drops
  * to U-mode for testing.
  *

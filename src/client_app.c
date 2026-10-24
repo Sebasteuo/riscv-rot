@@ -193,7 +193,7 @@ extern void init_heap_beebs(void *heap, size_t heap_size);
 
 /*
  * Heap for the benchmarks that allocate. BEEBS brings its own
- * allocator but expects the platform to hand it a block: without this
+ * allocator but expects the platform to hand it a block. Without this
  * call malloc_beebs returns NULL and the benchmarks dereference it.
  *
  * Sized to fit the largest allocation in the suite while staying
@@ -399,7 +399,7 @@ void client_bench_varied(void)
     /*
      * Ask the crypto core what the attestation path cost.
      *
-     * The absolute microseconds are not the result: the emulator is
+     * The absolute microseconds are not the result, because the emulator is
      * not cycle accurate. What the evaluation reports is the ratio
      * between the two figures, which says how much of the observed
      * time went into observing rather than working.
@@ -462,7 +462,7 @@ void client_bench_session(void)
 
         /*
          * Embench leaves the triggers to the harness, so the window is
-         * opened here. It covers the benchmark body alone: not the
+         * opened here. It covers the benchmark body alone, not the
          * setup, not the verification, not the printing.
          */
         bench_set_app(i + 1);

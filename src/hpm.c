@@ -32,12 +32,12 @@ void hpm_init(void)
     /*
      * The four instruction counters run with MINH set, so they do not
      * count while the processor is in M-mode. Without this the crypto
-     * core measures its own execution: a full run retires roughly
+     * core measures its own execution. A full run retires roughly
      * 1.13 M loads in total but only 120 K of those happen in U-mode,
      * so close to 90 percent of the raw signal comes from the
      * monitoring code rather than the monitored system.
      *
-     * Note that QEMU maps events to counters one to one: writing the
+     * Note that QEMU maps events to counters one to one. Writing the
      * same event id to a second mhpmevent register is silently ignored
      * because the event is already present in the lookup table. A
      * filtered and an unfiltered view of the same event therefore

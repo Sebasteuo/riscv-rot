@@ -9,7 +9,7 @@
  *
  * The verdict is not "is this a healthy program" but "is this what
  * this program normally does". Comparing a window against the whole
- * space of possible programs is the wrong question: eleven Embench
+ * space of possible programs is the wrong question. Eleven Embench
  * workloads already span nearly the entire range of every ratio, so
  * anything falls inside it. An attacker does not swap the program for
  * a different one, they perturb the one already running.

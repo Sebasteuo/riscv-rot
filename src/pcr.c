@@ -11,7 +11,7 @@
  * know what the PCR should be (because you know what software should
  * be running), you can verify the system has not been tampered with.
  *
- * The extend operation is one-way: you cannot "un-extend" a PCR
+ * The extend operation is one-way, so you cannot "un-extend" a PCR
  * to remove a measurement. The only way to reset a PCR is to
  * reboot the system (pcr_init sets them all to zero).
  *

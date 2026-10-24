@@ -8,7 +8,7 @@
  * When that happens the processor stops what it is doing, switches
  * to M-mode and jumps to a handler we set up ahead of time.
  *
- * There are two flavors of traps:
+ * There are two flavours of traps:
  *   Exceptions happen because of the current instruction
  *     (like trying to read protected memory)
  *   Interrupts come from external events

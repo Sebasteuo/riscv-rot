@@ -15,7 +15,7 @@
  * to be exploited and is never reached by normal operation. It is kept
  * in its own file so the distinction is unambiguous.
  *
- * This corresponds to attack A3 in the threat model: runtime
+ * This corresponds to attack A3 in the threat model, the runtime
  * compromise of the U-mode system. The model assumes the attacker is
  * already inside, so what is reproduced here is what they do next, not
  * how they got in.

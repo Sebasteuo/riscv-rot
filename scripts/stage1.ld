@@ -2,7 +2,7 @@
  * Linker script for Stage-1, the minimal trusted bootloader.
  *
  * Stage-1 owns the reset address and is the only code the platform
- * trusts unconditionally. On real hardware it would live in mask ROM;
+ * trusts unconditionally. On real hardware it would live in mask ROM, and
  * under emulation it is loaded at the reset vector and never written.
  *
  * Layout:

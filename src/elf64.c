@@ -4,7 +4,7 @@
  * Stage-1 ELF loader.
  *
  * Runs only after the image signature has been verified, so the data
- * is authenticated. Fields are still validated before use: an
+ * is authenticated. Fields are still validated before use, because an
  * authenticated image can still be malformed, and a loader that trusts
  * its input is exactly the failure mode BootStomp documents.
  */

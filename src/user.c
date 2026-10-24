@@ -639,8 +639,8 @@ void user_entry(void)
          * __text_start is defined by the linker script and points to
          * the actual beginning of the firmware code in memory (0x80000000).
          * We read 256 bytes of REAL machine code and send it to the
-         * crypto core to measure. This is what the professor asked for:
-         * the host sends raw binaries, not pre-computed hashes.
+         * crypto core to measure. The host sends raw binaries
+         * rather than pre-computed hashes.
          */
         extern char __shared_start __attribute__((visibility("hidden")));
         uint8_t *firmware_code = (uint8_t *)&__shared_start;
@@ -826,31 +826,11 @@ void user_entry(void)
             uart_puts(" (REJECTED, correct! not in whitelist yet)\n");
         }
 
-        /* Step 2: compute the hash locally using SHA-256
-         * We know the crypto core uses sha256 on the payload.
-         * We replicate this by asking the core to hash it via MEASURE
-         * but we can just hardcode: the hash is what CHECK_HASH computed.
-         * Instead, let's use a trick: send the same data to MEASURE to
-         * get it into PCR2, then read PCR2... but that's complex.
+        /* Step 2: compute the same hash in U-mode
          *
-         * Simpler: we manually compute SHA-256 of the 64 bytes.
-         * But we don't have SHA-256 in U-mode! So we use a trick:
-         * send the data for CHECK, note the hash from the output,
-         * then register that hash. But U-mode can't see trap output.
-         *
-         * Best approach: the firmware code at __text_start is fixed
-         * for this build. We use the crypto core to register: send
-         * the section for MEASURE, which puts hash in PCR. But PCRs
-         * use extend (hash of hash), not raw hash.
-         *
-         * Simplest correct approach: we send the 64 bytes to the core
-         * with a new purpose. Let's compute the hash in the core via
-         * ELF_CHECK_HASH (which prints it), and also have the host
-         * pre-compute it and register it.
-         *
-         * Actually, easiest: we know sha256 is in lib/sha256.c and
-         * it's linked. U-mode CAN call it since the code is in the
-         * same binary at a known address. Let's just call sha256().
+         * sha256() lives in the shared code region, which PMP maps as
+         * read and execute for U-mode, so the client can call it
+         * directly instead of asking the crypto core for the digest.
          */
         sha256(code, 64, section_hash);
 
@@ -1048,11 +1028,11 @@ void user_entry(void)
         /* ---- Test 32: U-mode cannot read M-mode code (the crypto core) ---- */
     /*
      * Tests 1 and 2 proved the secret DATA zone is blocked. This one
-     * proves the crypto core CODE is blocked too: with the full PMP
+     * proves the crypto core CODE is blocked too. With the full PMP
      * isolation there is no region covering 0x80000000 for U-mode, so
      * reading the firmware code from here must raise an access fault.
      * The trap handler catches it and we continue with garbage, exactly
-     * like Tests 1 and 2. This is the direct evidence for SRS-F-001 (4):
+     * like Tests 1 and 2. This is the direct evidence for SRS-F-001 (4),
      * the rest of memory is unreachable from U-mode.
      */
     uart_puts("\n[USER] Test 32: Attempting to READ M-mode code at 0x80000000...\n");
@@ -1102,7 +1082,7 @@ void user_entry(void)
 
     /* ---- Test 36: U-mode cannot read the architectural counters ---- */
     /*
-     * The event counters are an asset of the runtime attestation service:
+     * The event counters are an asset of the runtime attestation service, because
      * if U-mode could read them, a compromised system could learn what
      * profile it needs to imitate in order to look nominal.
      *
@@ -1169,11 +1149,11 @@ void user_entry(void)
     /*
      * Client application session. This is the workload the root of trust
      * attests, kept separate from the firmware test suite. It runs before
-     * tpm2_api_demo() because that call does not return: it ends with
+     * tpm2_api_demo() because that call does not return. It ends with
      * TPM2_Shutdown(), which hands control back to M-mode.
      */
     /*
-     * The hand-written workloads are gone: Embench replaced them.
+     * The hand-written workloads are gone, replaced by Embench.
      * Keeping both would mix a standard corpus with workloads written
      * for this project, which is exactly what using a standard corpus
      * was meant to avoid.

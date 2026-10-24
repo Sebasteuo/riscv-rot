@@ -3,14 +3,14 @@
 
 /*
  * Profiles measured on this platform. Every figure comes from a real
- * run of the workload, not from an estimate: see docs/tfg for the
+ * run of the workload, not from an estimate. See docs/tfg for the
  * measurement procedure.
  *
  * Tolerance is set at 15 percent. That is wide enough to absorb the
  * effect of different input sizes on the same workload, and narrow
  * enough to catch the overflow scenario, which moves branch/load by
  * 39 percent and jump/load by 89 percent. It can be narrow because
- * repeated runs of the same workload were measured to be identical:
+ * repeated runs of the same workload were measured to be identical, so
  * there is no natural variance to leave room for.
  */
 
@@ -84,7 +84,7 @@ static int within(uint16_t expected, uint16_t seen, uint16_t tol)
      * thousand loads, where 20 percent is less than one unit, so any
      * rounding at all reads as a deviation.
      *
-     * The floor is what makes small ratios usable: below it, a change
+     * The floor is what makes small ratios usable. Below it, a change
      * is not a signal. The overflow scenario moves jump/load from 235
      * to 26, which is far outside both bounds, so the floor does not
      * blunt detection where it matters.

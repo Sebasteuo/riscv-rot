@@ -15,7 +15,7 @@
  *
  * Two properties follow from that choice. The measurement points are
  * semantic rather than arbitrary, so every sample covers one complete
- * unit of work. And the sequence is deterministic: the same command
+ * unit of work. And the sequence is deterministic, since the same command
  * sequence yields the same samples, with no timer jitter involved.
  *
  * Counting only advances while the processor is in U-mode, since the
@@ -27,7 +27,7 @@
 #define ATTEST_FEATURES 6
 
 /*
- * Buffer depth. A full test run produces around 150 command windows:
+ * Buffer depth. A full test run produces around 150 command windows, because
  * the lockout wait in test 6 and the session exhaustion in test 10 are
  * retry loops that each contribute dozens of windows on their own.
  * 256 covers that with margin.

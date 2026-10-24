@@ -14,11 +14,12 @@
  * it stops instead of booting.
  *
  * The public key below is embedded in .rodata. Unlike the golden hash
- * scheme it replaces, this value does not need to be protected against
- * modification: an attacker who swaps it still cannot produce a
- * signature that verifies, because that requires the private key, which
- * never enters the device. The security of the chain rests on Stage-1
- * being immutable, which on real hardware means mask ROM.
+ * scheme it replaces, it needs no confidentiality, but it does need
+ * protection against modification. An attacker who swaps it for one of
+ * their own can sign a payload with the matching private key and the
+ * check will pass. What protects it is its location, not the fact that
+ * it is public. The security of the chain rests on Stage-1 being
+ * immutable, which on real hardware means mask ROM.
  */
 
 #define STAGE2_IMAGE_ADDR  0x80200000UL

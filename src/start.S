@@ -75,7 +75,7 @@ _start:
     /*
      * lla sp, __stack_top
      *
-     * lla stands for Load Local Address. It is a pseudo-instruction:
+     * lla stands for Load Local Address. It is a pseudo-instruction, so
      * the assembler expands it into auipc + addi, which build the
      * address relative to the current program counter. That matches
      * our -mcmodel=medany build, where all addressing is PC-relative,

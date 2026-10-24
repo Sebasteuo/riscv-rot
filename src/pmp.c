@@ -4,7 +4,7 @@
  *
  * 6 PMP regions, NO catch-all. Any address not matched by a region is
  * denied for U-mode (PMP default) and allowed for M-mode (M-mode ignores
- * unlocked entries). This gives true isolation: U-mode can only touch
+ * unlocked entries). This gives true isolation, so U-mode can only touch
  * what it is explicitly granted.
  *
  *   Region 0: secret zone (0x80200000)  seeds, password, PCR, auth state.
@@ -39,7 +39,7 @@
 #define REGION_64KB       0x10000UL
 
 /*
- * The U-mode region grew when the Embench suite was added: its code,
+ * The U-mode region grew when the Embench suite was added. Its code,
  * data and heap now span roughly 400 KB. PMP in NAPOT mode only
  * accepts power-of-two sizes, so the next one up is 512 KB.
  */

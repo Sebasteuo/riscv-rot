@@ -7,7 +7,7 @@
  * Client application (OE3).
  *
  * This is the workload the root of trust attests. It is deliberately
- * separate from the firmware itself: the firmware has a small, fully
+ * separate from the firmware itself. The firmware has a small, fully
  * mapped control-flow graph and is better covered by hashing, whereas a
  * client application is arbitrarily complex and is what an attacker
  * would actually compromise.

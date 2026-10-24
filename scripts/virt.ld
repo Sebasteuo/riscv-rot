@@ -13,7 +13,7 @@
  *   0x80200000  .secret_data (seeds, password) + .secret (PCR, auth state)
  *               Protected by PMP region 0, no U-mode access.
  *
- * The placement is by object file: the linker assigns each .o's sections
+ * The placement is by object file. The linker assigns each .o's sections
  * to the matching region. Sections listed first (shared, U-mode) are
  * consumed before the catch-all M-mode .text grabs the rest.
  *

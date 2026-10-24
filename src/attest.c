@@ -5,7 +5,7 @@
 
 /*
  * Counter indices in the order they appear in a sample. Kept as a table
- * so the feature order is defined in one place: the firmware, the
+ * so the feature order is defined in one place. The firmware, the
  * exported dataset and the trained model must all agree on it.
  */
 static const int feature_ctr[ATTEST_FEATURES] = {
@@ -36,7 +36,7 @@ static uint32_t point_mask;
 /*
  * Overhead accounting.
  *
- * cost_us accumulates the time spent inside the attestation path: the
+ * cost_us accumulates the time spent inside the attestation path, which
  * counter reads on open, and the reads plus classification on close.
  * work_us accumulates the time between the two, which is the workload
  * being observed.
@@ -178,7 +178,7 @@ void attest_set_selection(const uint8_t *nonce, uint32_t nonce_len)
 
     /*
      * Fold the nonce into a bitmask, one bit per measurement point.
-     * Nothing cryptographic is needed here: the point is that the
+     * Nothing cryptographic is needed here. The point is that the
      * selection is unpredictable to the client, and the nonce already
      * comes from the verifier.
      */
