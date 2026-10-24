@@ -116,7 +116,7 @@ static void write_mepc(uint64_t val)
 /* -------------------------------------------------------------------------
  * insn_len - length in bytes of the instruction at pc
  *
- * RISC-V encodes the length in the low bits: if the low two bits of the
+ * RISC-V encodes the length in the low bits. If the low two bits of the
  * first halfword are 0b11 the instruction is 32 bits (4 bytes), otherwise
  * it is a 16-bit compressed instruction (2 bytes). The trap handler uses
  * this to skip exactly one trapping instruction, whether or not the C
@@ -188,18 +188,22 @@ static void process_auth(volatile uint32_t *shared)
     uart_put_hex(size);
     uart_puts(" bytes\n");
 
-    /* check if password length matches */
-    if (size != CORRECT_PASSWORD_LEN) {
-        match = 0;
-    } else {
-        /* compare byte by byte */
-        match = 1;
+    /*
+     * Constant time compare, no early exit. The old loop broke on the
+     * first wrong byte, so the iteration count tracked how many leading
+     * bytes were right. Nothing in U mode can observe that today, but
+     * that rests on three unrelated decisions elsewhere rather than on
+     * this code, so this code is made not to depend on them. Same shape
+     * as crypto_verify_32 in TweetNaCl. The length is folded into the
+     * same accumulator so there is no branch on it either.
+     */
+    {
+        uint32_t diff = size ^ (uint32_t)CORRECT_PASSWORD_LEN;
+
         for (i = 0; i < CORRECT_PASSWORD_LEN; i++) {
-            if (data[i] != correct_password[i]) {
-                match = 0;
-                break;
-            }
+            diff |= (uint32_t)(data[i] ^ correct_password[i]);
         }
+        match = (diff == 0);
     }
 
     if (match) {
@@ -338,9 +342,6 @@ static int check_session_token(volatile uint32_t *shared)
 }
 
 /* -------------------------------------------------------------------------
- * process_shared_command - handle a request from the shared memory zone
- *
- * Now with authentication and lockout checks:
  * process_nv_read - read the current monotonic counter value
  *
  * Reads the 4-byte counter from Secure Storage slot 5 and writes
@@ -979,9 +980,10 @@ static void process_attest_end(volatile uint32_t *shared)
      * Report layout in the shared area:
      *   0  .. 15   nonce, echoed back so the verifier can match it
      *   16 .. 63   six counter deltas, big-endian, 8 bytes each
+     *   64 .. 95   HMAC-SHA256 over bytes 0 to 63, keyed with the EK
      *
-     * The signature over this block is added once the report format is
-     * final. Until then the layout is what the verifier parses.
+     * The signature is what stops U mode writing its own clean report
+     * into the shared area. Without it the whole report is advisory.
      */
     nonce = attest_window_nonce();
     for (i = 0; i < ATTEST_NONCE_SIZE; i++) {
@@ -996,17 +998,36 @@ static void process_attest_end(volatile uint32_t *shared)
     }
 
     /*
-     * The internal verdict does not replace the external verifier. It
-     * travels alongside the metrics as the opinion of a component the
-     * client cannot tamper with, which is worth something even though
-     * the decision remains outside.
+     * Sign the 64 byte block with the EK, the same way QUOTE signs the
+     * PCR concatenation.
+     */
+    {
+        uint8_t ek_key[32];
+        uint32_t ek_size = 32;
+        uint8_t signature[32];
+        int s;
+
+        ss_read_key(KEY_ID_EK, ek_key, &ek_size);
+        hmac_sha256(ek_key, 32, data,
+                    ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8, signature);
+
+        for (s = 0; s < 32; s++) {
+            data[ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8 + s] = signature[s];
+        }
+    }
+
+    /*
+     * The verdict stays inside M mode and never reaches the shared
+     * area. Handing it to the measured code gives that code an exact
+     * pass or fail oracle for its own profile, and with the six deltas
+     * also visible the acceptance band falls in about ten queries. The
+     * remote verifier recomputes the verdict from the deltas, so
+     * nothing is lost by keeping it off the wire.
      */
     {
         uint64_t ct0 = timer_now();
         profile_verdict_t v = profile_check(attest_get_app(), delta);
         attest_add_class_us(timer_now() - ct0);
-
-        data[ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8] = (uint8_t)v;
 
         uart_puts("[ATT] Verdict: ");
         uart_puts(profile_verdict_name(v));
@@ -1022,7 +1043,7 @@ static void process_attest_end(volatile uint32_t *shared)
     }
     uart_puts("\n");
 
-    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8 + 1;
+    shared[SHARED_OFF_SIZE / 4] = ATTEST_NONCE_SIZE + ATTEST_FEATURES * 8 + 32;
     shared[SHARED_OFF_STATUS / 4] = SHARED_STATUS_OK;
 }
 
@@ -1194,7 +1215,7 @@ static void process_shared_command(void)
          * Report what the attestation path cost against the work it
          * observed. Both figures are accumulated over the whole run.
          *
-         * The client cannot read these directly: they live in the
+         * The client cannot read these directly. They live in the
          * firmware's protected region, which is the point. It asks,
          * the crypto core answers.
          */
@@ -1224,6 +1245,16 @@ static void process_shared_command(void)
     }
 
     case SHARED_CMD_ATTEST_END:
+        /*
+         * No session token check here, and it is not an oversight.
+         * check_session_token() reads the token from the first four
+         * bytes of DATA, which is where the attestation nonce lives.
+         * QUOTE sidesteps this by writing its own output at DATA + 4.
+         * Gating this command the same way needs the report layout to
+         * shift by four bytes, on both sides. Until that happens this
+         * path has no rate limit, which is what makes the verdict
+         * oracle practical and is why the verdict is no longer exposed.
+         */
         process_attest_end(shared);
         break;
 
