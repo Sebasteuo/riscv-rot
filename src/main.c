@@ -21,6 +21,7 @@
 #include "keygen.h"
 #include "hpm.h"
 #include "attest.h"
+#include "profile.h"
 
 extern void switch_to_user(void);
 
@@ -109,6 +110,10 @@ void main(void)
 
     /* Step 4: initialize PCRs */
     pcr_init();
+
+#ifdef COST_REPORT
+    profile_cost_report();
+#endif
 
     /* Step 5: measure firmware integrity */
     uart_puts("\n[MAIN] --- Firmware integrity measurement ---\n");

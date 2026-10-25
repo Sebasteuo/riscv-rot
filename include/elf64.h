@@ -55,6 +55,11 @@ typedef struct {
     uint64_t p_align;
 } elf64_phdr_t;
 
+/* Segment permission bits, from the ELF specification */
+#define PF_X  0x1
+#define PF_W  0x2
+#define PF_R  0x4
+
 /* Bounds the loader accepts for segment placement.
  *
  * The top has to stay below the Stage-1 code at 0x80400000 and the
@@ -82,6 +87,7 @@ typedef enum {
     ELF_ERR_PHOFF,
     ELF_ERR_SEGMENT_RANGE,
     ELF_ERR_SEGMENT_SIZE,
+    ELF_ERR_ENTRY,
 } elf_result_t;
 
 elf_result_t elf_load(const uint8_t *image, uint32_t image_size,

@@ -67,7 +67,7 @@ void pmp_setup(void)
     addr3 = napot_addr(SHARED_BASE, SHARED_SIZE);
     /* Region 4: shared code (uart, sha256, hmac), 64 KB */
     addr4 = napot_addr(SHARED_CODE_BASE, REGION_64KB);
-    /* Region 5: U-mode code + data + stack, 64 KB */
+    /* Region 5: U-mode code + data + stack, 512 KB */
     addr5 = napot_addr(UMODE_BASE, REGION_512KB);
 
     asm volatile("csrw pmpaddr0, %0" :: "r"(addr0));

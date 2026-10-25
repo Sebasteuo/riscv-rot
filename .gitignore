@@ -22,7 +22,9 @@ keys/
 stage1.elf
 stage2.img
 stage2.bin
-data/
+data/*
+!data/nominal.csv
+!data/run.log
 docs/tfg/informes/
 
 # compare: binarios reproducibles, no versionar

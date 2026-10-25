@@ -134,3 +134,76 @@ const char *profile_verdict_name(profile_verdict_t v)
     default:                        return "unknown";
     }
 }
+#ifdef COST_REPORT
+
+/*
+ * Cost of one verdict, in retired instructions.
+ *
+ * Elapsed time under emulation describes the host, so instructions are the
+ * figure that compares against the board. The count is real only under
+ * -icount, which is why this has a target of its own.
+ *
+ * The inputs are windows the platform measured, the baseline window of
+ * application 0 and its redirection scenario, so the classifier decides
+ * here on the same evidence it sees during an attestation run.
+ */
+static inline uint64_t cost_insn(void)
+{
+    uint64_t v;
+    asm volatile("csrr %0, minstret" : "=r"(v) : : "memory");
+    return v;
+}
+
+static volatile uint32_t cost_sink;
+
+static uint64_t cost_one(uint32_t app, const uint64_t w[ATTEST_FEATURES])
+{
+    uint64_t a, b;
+
+    a = cost_insn();
+    cost_sink += (uint32_t)profile_check(app, w);
+    b = cost_insn();
+    return b - a;
+}
+
+static uint64_t cost_many(uint32_t app, const uint64_t w[ATTEST_FEATURES])
+{
+    uint64_t a, b;
+    int k;
+
+    a = cost_insn();
+    for (k = 0; k < 1000; k++) {
+        cost_sink += (uint32_t)profile_check(app, w);
+    }
+    b = cost_insn();
+    return (b - a) / 1000;
+}
+
+void profile_cost_report(void)
+{
+    static const uint64_t win[3][ATTEST_FEATURES] = {
+        {  281,  117,  49, 7, 1, 2 },
+        { 1565,  698, 336, 5, 1, 2 },
+        { 2837, 1042, 512, 6, 1, 2 },
+    };
+    static const char *const name[3] = { "baseline", "redirect", "volume  " };
+    int i;
+
+    uart_puts("\n[COST] verdict cost in retired instructions\n");
+    for (i = 0; i < 3; i++) {
+        uart_puts("[COST] ");
+        uart_puts(name[i]);
+        uart_puts(" one=");
+        uart_put_dec(cost_one(0, win[i]));
+        uart_puts(" per=");
+        uart_put_dec(cost_many(0, win[i]));
+        uart_puts(" verdict=");
+        uart_put_dec((uint64_t)profile_check(0, win[i]));
+        uart_puts("\n");
+    }
+    uart_puts("[COST] sink ");
+    uart_put_dec(cost_sink);
+    uart_puts("\n");
+}
+
+#endif /* COST_REPORT */

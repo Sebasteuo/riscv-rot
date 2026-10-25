@@ -62,6 +62,11 @@ profile_verdict_t profile_check(uint32_t app_id,
                                 const uint64_t delta[ATTEST_FEATURES]);
 
 /* Human-readable form of a verdict, for the UART log */
+/* Report what one verdict costs, in retired instructions. Compiled only
+ * when COST_REPORT is defined, which the measure-verdict target does.
+ */
+void profile_cost_report(void);
+
 const char *profile_verdict_name(profile_verdict_t v);
 
 /* How many profiles are compiled in */

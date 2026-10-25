@@ -443,3 +443,126 @@ clean-secureboot:
 	rm -rf $(S1BUILD) stage1.elf stage2.img
 
 .PHONY: secureboot run-secureboot clean-secureboot
+
+# ---------------------------------------------------------------------------
+# Behaviour profiles (OE3)
+#
+# The profile table compiled into src/profile.c comes from a measured run.
+# These targets record that run and refit from it, so the table in the
+# firmware can always be traced back to data kept in the repository.
+#
+#   make profiles        record a run into data/run.log and print the table
+#   make check-profiles  refit from a fresh run and fail on any difference
+#
+# The run is deterministic, so the recorded log is committed and the check
+# target is what proves the table still matches the firmware that produced
+# it.
+# ---------------------------------------------------------------------------
+profiles: $(TARGET).elf
+	@rm -f secure_storage.bin
+	@timeout 40 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
+		-bios none -kernel $(TARGET).elf -smp 1 < /dev/null \
+		> data/run.log 2>&1; true
+	@echo "recorded $$(grep -c 'Window closed' data/run.log) windows in data/run.log"
+	@python3 tools/fit_profiles.py data/run.log
+
+check-profiles: $(TARGET).elf
+	@echo "=== Checking the profile table against a fresh run ==="
+	@rm -f secure_storage.bin
+	@timeout 40 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
+		-bios none -kernel $(TARGET).elf -smp 1 < /dev/null \
+		> /tmp/run_check.log 2>&1; true
+	@python3 tools/fit_profiles.py /tmp/run_check.log \
+		| grep -oE '\{ *[0-9]+, *[0-9]+, *[0-9]+, *[0-9]+ *\}' \
+		| tr -d ' ' | sort > /tmp/profiles_fresh.txt
+	@grep -oE '\{ *[0-9]+, *[0-9]+, *[0-9]+, *[0-9]+ *\}' src/profile.c \
+		| tr -d ' ' | sort > /tmp/profiles_repo.txt
+	@if diff -q /tmp/profiles_repo.txt /tmp/profiles_fresh.txt > /dev/null; then \
+		echo "  [OK] src/profile.c matches a fresh run"; \
+		echo ""; echo "=== RESULT: PASS ==="; \
+	else \
+		echo "  [FAIL] src/profile.c does not match a fresh run"; \
+		diff /tmp/profiles_repo.txt /tmp/profiles_fresh.txt; \
+		echo ""; echo "=== RESULT: FAIL ==="; exit 1; \
+	fi
+
+# ---------------------------------------------------------------------------
+# Secure boot chain regression (OE1)
+#
+# The test suite boots firmware.elf directly and never calls elf_load, so
+# it cannot see a broken handover. A load address collision once left the
+# chain jumping to address zero while the suite still reported 36 of 36.
+# This target boots through Stage-1 and requires all three markers, since
+# a valid signature on its own says nothing about Stage-2 being reached.
+#
+# No -icount here. The regression needs the chain to complete, not timing
+# to be reproducible, and emulating the whole suite instruction by
+# instruction takes orders of magnitude longer.
+# ---------------------------------------------------------------------------
+test-chain: secureboot
+	@echo "=== Running the secure boot chain ==="
+	@rm -f secure_storage.bin chain_output.log
+	@timeout 40 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
+		-bios stage1.elf \
+		-device loader,file=stage2.img,addr=0x84000000 \
+		-smp 1 < /dev/null > chain_output.log 2>&1; true
+	@echo ""
+	@pass=1; \
+	if grep -q "Secure Boot PASSED" chain_output.log; then \
+		echo "  [OK] the signature check passed"; \
+	else \
+		echo "  [FAIL] the signature check did not pass"; pass=0; \
+	fi; \
+	if grep -q "Entry point 0x80000000" chain_output.log; then \
+		echo "  [OK] the entry point validated to the expected address"; \
+	else \
+		echo "  [FAIL] the entry point is wrong or was rejected"; pass=0; \
+	fi; \
+	if grep -q "ALL TESTS PASSED" chain_output.log; then \
+		echo "  [OK] Stage-2 was reached and ran its suite"; \
+	else \
+		echo "  [FAIL] Stage-2 was never reached or did not finish"; pass=0; \
+	fi; \
+	echo ""; \
+	if [ $$pass -eq 1 ]; then \
+		echo "=== RESULT: PASS ==="; \
+	else \
+		echo "=== RESULT: FAIL ==="; exit 1; \
+	fi
+
+.PHONY: profiles check-profiles test-chain
+
+# ---------------------------------------------------------------------------
+# Loader rejection tests (OE1)
+#
+# A signature makes an image authentic, not well formed. Each case here
+# changes one field of a good image, signs it, and requires the loader to
+# refuse it with the error that field feeds. A good image runs first as
+# the control.
+# ---------------------------------------------------------------------------
+test-reject: secureboot
+	@python3 tools/test_reject.py $(KEYPREFIX)
+
+.PHONY: test-reject
+
+# ---------------------------------------------------------------------------
+# Verdict cost
+#
+# What one classifier verdict costs, in retired instructions, which is the
+# figure that compares against the board. The -icount flag is what makes the
+# count real, and the define keeps the measurement out of every other build,
+# so the default binary stays the one the other figures were taken from.
+# ---------------------------------------------------------------------------
+EXTRA_CFLAGS ?=
+CFLAGS += $(EXTRA_CFLAGS)
+
+measure-verdict:
+	@touch src/profile.c src/main.c
+	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DCOST_REPORT $(TARGET).elf > /dev/null
+	@rm -f secure_storage.bin
+	@timeout 120 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/verdict.log 2>&1; true
+	@grep COST /tmp/verdict.log || echo "  no figure came back"
+	@touch src/profile.c src/main.c
+	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
+
+.PHONY: measure-verdict
