@@ -80,6 +80,22 @@ typedef enum {
      * separate from nominal behaviour. */
     ATTACK_REUSE,
 
+    /*
+     * Diagnostics added after the analysis of the scenarios above.
+     * Neither one is an attack.
+     *
+     * ATTACK_VOLUME copies the same number of bytes as ATTACK_LONG
+     * into a buffer that holds them, so there is no overflow and no
+     * diversion. It isolates the copy volume on its own.
+     *
+     * ATTACK_SMALL_HELPER repeats ATTACK_SMALL with the one auxiliary
+     * call that the baseline makes and the attack scenarios do not. It
+     * holds the indirect jump count equal to the baseline, so what is
+     * left to read is the volume.
+     */
+    ATTACK_VOLUME,
+    ATTACK_SMALL_HELPER,
+
     ATTACK_COUNT,
 } attack_kind_t;
 

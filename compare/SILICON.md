@@ -14,11 +14,20 @@ retired, JALR retired.
 load, branch, jalr: 99 of 99 figures identical.
 store: 33 of 33 differ by exactly one, always one fewer on silicon.
 
-The store offset is the emit-versus-retire difference: qemu-ccore counts
-the store on entry to gen_store, the U74 counts it at retirement. One
-store is always in flight when the counter is read. Constant across
-values ranging from 262 to 1.5 million, which is what a systematic
-offset looks like and noise does not.
+The offset is constant across values ranging from 262 to 1.5 million, which
+is what a systematic offset looks like and noise does not. As relative
+error that is 0.38 per cent at worst, on the 262 store case, and under
+0.0001 per cent at best. The classifier tolerances run from 10 to 35 per
+cent, so the offset sits about 26 times below the tightest one.
+
+The cause was not determined. An emit versus retire explanation was tested
+and ruled out. A barrier between the last store and the counter read
+supported it for an isolated case of three stores, but in the full harness
+the offset survives the barrier.
+
+The offset is also bounded to this harness. In the adversarial scenario
+harness the stores match exactly, 20 figures out of 20, so the offset is
+not a property of the U74 store event.
 
 ## What had to be fixed to get here
 

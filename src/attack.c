@@ -235,6 +235,7 @@ static void run_inject(void)
 
 static const char *kind_name[ATTACK_COUNT] = {
     "none", "redirect", "inject", "small", "long", "reuse",
+    "volume", "small-helper",
 };
 
 static void run_small(void)
@@ -300,6 +301,45 @@ static void run_reuse(void)
     vulnerable(input, sizeof(input));
 }
 
+/*
+ * Diagnostics. Neither one is an attack. They were added after the
+ * analysis of the four scenarios above, without changing those four or
+ * the profile, so the earlier measurements stand as they were taken.
+ */
+
+/* The same copy as the long scenario, into a buffer that holds it */
+static void __attribute__((noinline))
+not_vulnerable(const uint8_t *input, uint32_t len)
+{
+    uint8_t buffer[256];
+
+    copy_input(buffer, input, len);
+    work_sink += buffer[0];
+}
+
+static void run_volume(void)
+{
+    uint8_t input[256];
+    int i;
+
+    for (i = 0; i < 256; i++) {
+        input[i] = 0x41;
+    }
+    not_vulnerable(input, sizeof(input));
+}
+
+static void run_small_helper(void)
+{
+    uint8_t input[40];
+    int i;
+
+    for (i = 0; i < 40; i++) {
+        input[i] = 0x41;
+    }
+    benign_helper();
+    vulnerable(input, sizeof(input));
+}
+
 void attack_run(attack_kind_t kind)
 {
     diverted = 0;
@@ -322,6 +362,8 @@ void attack_run(attack_kind_t kind)
     case ATTACK_SMALL:    run_small();    break;
     case ATTACK_LONG:     run_long();     break;
     case ATTACK_REUSE:    run_reuse();    break;
+    case ATTACK_VOLUME:   run_volume();   break;
+    case ATTACK_SMALL_HELPER: run_small_helper(); break;
     default: break;
     }
 
