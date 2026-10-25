@@ -55,9 +55,21 @@ typedef struct {
     uint64_t p_align;
 } elf64_phdr_t;
 
-/* Bounds the loader accepts for segment placement */
+/* Bounds the loader accepts for segment placement.
+ *
+ * The top has to stay below the Stage-1 code at 0x80400000 and the
+ * Stage-1 stack at 0x80500000, and below the signed image at 0x84000000.
+ * If the window reached any of those, a segment could overwrite the
+ * loader while it runs, or the header that the copy loop keeps
+ * re-reading.
+ *
+ * Stage-2 reaches 0x802001b0 today, so this leaves about 1 MB of room. A
+ * firmware that outgrows the window is rejected with
+ * ELF_ERR_SEGMENT_RANGE, which fails loudly instead of corrupting
+ * memory.
+ */
 #define ELF_LOAD_MIN_ADDR   0x80000000UL
-#define ELF_LOAD_MAX_ADDR   0x88000000UL
+#define ELF_LOAD_MAX_ADDR   0x80300000UL
 #define ELF_MAX_PHNUM       16
 
 typedef enum {

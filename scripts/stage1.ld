@@ -7,9 +7,9 @@
  *
  * Layout:
  *   0x80000000   where Stage-2 gets loaded, must stay clear
- *   0x80200000   Stage-2 signed image, placed there by the loader
  *   0x80400000   Stage-1 code, rodata, data and bss
  *   0x80500000   Stage-1 stack top
+ *   0x84000000   Stage-2 signed image, placed there by QEMU at startup
  *
  * Stage-1 deliberately lives above the region Stage-2 occupies. A
  * loader that shares an address range with the image it loads will

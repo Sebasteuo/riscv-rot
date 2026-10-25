@@ -422,16 +422,21 @@ stage1.elf: $(S1_OBJS)
 	  -Wl,--no-dynamic-linker -o $@ $(S1_OBJS)
 	riscv64-linux-gnu-size $@
 
-# Stage-2 is the existing firmware, stripped to a raw binary and signed
-stage2.img: $(TARGET).elf $(KEYPREFIX).pub
-	python3 tools/sign_image.py sign $(KEYPREFIX) $(TARGET).elf $@ 1
+# Stage-2 is the existing firmware with its symbol and debug sections
+# removed, then signed. Only the loadable segments ever get copied, so
+# hashing and signing the symbol table would cost boot time for nothing.
+stage2.img: $(TARGET).elf $(KEYPREFIX).pub | $(S1BUILD)
+	cp $(TARGET).elf $(S1BUILD)/stage2_stripped.elf
+	riscv64-linux-gnu-strip $(S1BUILD)/stage2_stripped.elf
+	python3 tools/sign_image.py sign $(KEYPREFIX) $(S1BUILD)/stage2_stripped.elf $@ 1
 
 secureboot: stage1.elf stage2.img
 
 run-secureboot: secureboot
 	$(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
 	  -bios stage1.elf \
-	  -device loader,file=stage2.img,addr=0x80200000 \
+	  -device loader,file=stage2.img,addr=0x84000000 \
+	  -icount shift=0 \
 	  -smp 1
 
 clean-secureboot:

@@ -146,18 +146,38 @@ void sha256_init(sha256_ctx *ctx)
  * ------------------------------------------------------------------------- */
 void sha256_update(sha256_ctx *ctx, const uint8_t *data, uint32_t len)
 {
-    uint32_t i;
+    uint32_t n;
     uint32_t buf_idx = (uint32_t)(ctx->count & 0x3F);  /* position in buffer */
 
     ctx->count += len;
 
-    for (i = 0; i < len; i++) {
-        ctx->buf[buf_idx++] = data[i];
-        if (buf_idx == 64) {
-            sha256_transform(ctx, ctx->buf);
-            buf_idx = 0;
+    /* Top up a partial buffer left by an earlier call */
+    if (buf_idx != 0) {
+        while (len > 0 && buf_idx < 64) {
+            ctx->buf[buf_idx++] = *data++;
+            len--;
         }
+        if (buf_idx < 64) {
+            return;
+        }
+        sha256_transform(ctx, ctx->buf);
     }
+
+    /* Whole blocks are hashed straight from the caller buffer. The
+     * transform reads a block one byte at a time, so the pointer does
+     * not have to be aligned.
+     */
+    while (len >= 64) {
+        sha256_transform(ctx, data);
+        data += 64;
+        len -= 64;
+    }
+
+    /* Whatever does not fill a block waits for the next call */
+    for (n = 0; n < len; n++) {
+        ctx->buf[n] = data[n];
+    }
+
 }
 
 /* -------------------------------------------------------------------------
