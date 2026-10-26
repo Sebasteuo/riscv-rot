@@ -15,7 +15,7 @@ import re
 import sys
 
 SCALE = 10000
-FLOOR = 25
+FLOOR = int(sys.argv[2]) if len(sys.argv) > 2 else 25
 
 LABEL = re.compile(r"^\[APP\] ([a-z][a-z0-9_-]*) g(\d+)")
 WINDOW = re.compile(r"Window closed: ([\d,]+)")
