@@ -1033,9 +1033,19 @@ static void process_attest_end(volatile uint32_t *shared)
      * costs a reboot and a full verified boot, instead of one query.
      */
     {
-        uint64_t ct0 = timer_now();
+        uint64_t ct0 = attest_now_insn();
         profile_verdict_t v = profile_check(attest_get_app(), delta);
-        attest_add_class_us(timer_now() - ct0);
+        attest_add_class_insn(attest_now_insn() - ct0);
+
+        uart_puts("[COST] service ");
+        uart_put_dec(attest_cost_insn());
+        uart_puts(" work ");
+        uart_put_dec(attest_work_insn());
+        uart_puts(" class ");
+        uart_put_dec(attest_class_insn());
+        uart_puts(" windows ");
+        uart_put_dec(attest_window_count());
+        uart_puts("\n");
 
         uart_puts("[ATT] Verdict: ");
         uart_puts(profile_verdict_name(v));
@@ -1234,8 +1244,8 @@ static void process_shared_command(void)
          * firmware's protected region, which is the point. It asks,
          * the crypto core answers.
          */
-        uint64_t c = attest_cost_us();
-        uint64_t w = attest_work_us();
+        uint64_t c = attest_cost_insn();
+        uint64_t w = attest_work_insn();
         uint32_t n = attest_window_count();
         uint32_t k;
 
@@ -1248,7 +1258,7 @@ static void process_shared_command(void)
         }
 
         {
-            uint64_t cl = attest_class_us();
+            uint64_t cl = attest_class_insn();
             for (k = 0; k < 8; k++) {
                 data[20 + k] = (uint8_t)(cl >> (56 - 8 * k));
             }

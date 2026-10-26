@@ -86,11 +86,12 @@ int attest_window_close(uint64_t out[ATTEST_FEATURES]);
  * a way the raw numbers do not, which is why the evaluation reports it
  * rather than the absolute cost.
  */
-uint64_t attest_cost_us(void);       /* time spent inside open + close */
-uint64_t attest_work_us(void);       /* time spent between open and close */
+uint64_t attest_cost_insn(void);       /* instructions retired inside open + close */
+uint64_t attest_work_insn(void);       /* instructions retired between open and close */
 uint32_t attest_window_count(void);  /* windows measured so far */
-uint64_t attest_class_us(void);      /* time spent deciding, inside the device */
-void     attest_add_class_us(uint64_t us);
+uint64_t attest_class_insn(void);      /* instructions retired deciding, inside the device */
+void     attest_add_class_insn(uint64_t us);
+uint64_t attest_now_insn(void);      /* retired instructions, for the cost figures */
 void     attest_cost_reset(void);
 
 /*

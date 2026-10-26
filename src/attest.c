@@ -36,19 +36,34 @@ static uint32_t point_mask;
 /*
  * Overhead accounting.
  *
- * cost_us accumulates the time spent inside the attestation path, which
- * counter reads on open, and the reads plus classification on close.
- * work_us accumulates the time between the two, which is the workload
+ * cost_insn accumulates the instructions retired inside the attestation path, which
+ * counter reads on open and the reads on close. The classification is
+ * accumulated separately, because it runs after the window closes.
+ *
+ * work_insn accumulates the instructions retired between the two, which is the workload
  * being observed.
  *
  * The split is what makes the relative figure possible. Neither number
  * means much alone under emulation. Their ratio does.
  */
-static uint64_t cost_us;
-static uint64_t work_us;
+static uint64_t cost_insn;
+static uint64_t work_insn;
 static uint64_t work_t0;
 static uint32_t window_n;
-static uint64_t class_us;
+static uint64_t class_insn;
+
+/*
+ * Retired instructions, the unit the evaluation compares across platforms.
+ * Elapsed time under emulation describes the host, so the service cost is
+ * accumulated in instructions instead. The figure is only real under
+ * -icount, which the run target sets.
+ */
+uint64_t attest_now_insn(void)
+{
+    uint64_t v;
+    asm volatile("csrr %0, minstret" : "=r"(v) : : "memory");
+    return v;
+}
 
 /*
  * The classification is timed separately from the counter reads.
@@ -60,19 +75,19 @@ static uint64_t class_us;
  * approach, so lumping them together would hide the figure that
  * matters.
  */
-void attest_add_class_us(uint64_t us) { class_us += us; }
-uint64_t attest_class_us(void)        { return class_us; }
+void attest_add_class_insn(uint64_t us) { class_insn += us; }
+uint64_t attest_class_insn(void)        { return class_insn; }
 
-uint64_t attest_cost_us(void)      { return cost_us; }
-uint64_t attest_work_us(void)      { return work_us; }
+uint64_t attest_cost_insn(void)      { return cost_insn; }
+uint64_t attest_work_insn(void)      { return work_insn; }
 uint32_t attest_window_count(void) { return window_n; }
 
 void attest_cost_reset(void)
 {
-    cost_us = 0;
-    work_us = 0;
+    cost_insn = 0;
+    work_insn = 0;
     window_n = 0;
-    class_us = 0;
+    class_insn = 0;
 }
 static uint32_t dropped;
 
@@ -127,7 +142,7 @@ void attest_sample(uint32_t cmd)
 void attest_window_open(const uint8_t *nonce, uint32_t nonce_len)
 {
     uint32_t i;
-    uint64_t t0 = timer_now();
+    uint64_t t0 = attest_now_insn();
 
     read_all(window_base);
 
@@ -142,8 +157,8 @@ void attest_window_open(const uint8_t *nonce, uint32_t nonce_len)
      * open path does, and work_t0 starts the moment control goes back
      * to the observed workload.
      */
-    work_t0 = timer_now();
-    cost_us += work_t0 - t0;
+    work_t0 = attest_now_insn();
+    cost_insn += work_t0 - t0;
 }
 
 int attest_window_close(uint64_t out[ATTEST_FEATURES])
@@ -156,8 +171,8 @@ int attest_window_close(uint64_t out[ATTEST_FEATURES])
         return 0;
     }
 
-    t0 = timer_now();
-    work_us += t0 - work_t0;
+    t0 = attest_now_insn();
+    work_insn += t0 - work_t0;
 
     read_all(now);
     for (i = 0; i < ATTEST_FEATURES; i++) {
@@ -167,7 +182,7 @@ int attest_window_close(uint64_t out[ATTEST_FEATURES])
     window_open = 0;
     window_n++;
 
-    cost_us += timer_now() - t0;
+    cost_insn += attest_now_insn() - t0;
     return 1;
 }
 

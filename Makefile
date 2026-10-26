@@ -566,3 +566,10 @@ measure-verdict:
 	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
 
 .PHONY: measure-verdict
+
+measure-service:
+	@rm -f secure_storage.bin
+	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/service.log 2>&1; true
+	@grep "COST. service" /tmp/service.log | tail -1 || echo "  no figure came back"
+
+.PHONY: measure-service
