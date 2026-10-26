@@ -1,0 +1,13 @@
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== trap event probe ===
+mcycle delta   25998805
+mtime delta    1000002
+clock MHz      25
+
+ecalls issued  1000
+counter reads  1000
+
+=== done ===

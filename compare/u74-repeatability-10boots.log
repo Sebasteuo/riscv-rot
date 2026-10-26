@@ -1,0 +1,992 @@
+
+U-Boot SPL 2021.01 (Apr 07 2021 - 17:59:15 +0000)
+Trying to boot from MMC1
+
+
+U-Boot 2021.01 (Apr 07 2021 - 17:59:15 +0000)
+
+CPU:   rv64imafdc
+Model: SiFive HiFive Unmatched A00
+DRAM:  16 GiB
+MMC:   spi@10050000:mmc@0: 0
+EEPROM: SiFive PCB EEPROM format v1
+Serial number: SF105SZ233800708
+PCB revision: 4
+Ethernet MAC address: 70:b3:d5:92:fe:38
+CRC: e5284504
+EEPROM dump: (0x25 bytes)
+00: F1 5E 50 45 01 02 00 04 42 00 53 46 31 30 35 53 
+10: 5A 32 33 33 38 30 30 37 30 38 01 70 B3 D5 92 FE 
+20: 38 04 45 28 E5 
+found SiFive v1
+In:    serial@10010000
+Out:   serial@10010000
+Err:   serial@10010000
+Model: SiFive HiFive Unmatched A00
+Net:   eth0: ethernet@10090000
+Hit any key to stop autoboot:  2  1  0 
+PCIe Link up, Gen1
+
+Device 0: unknown device
+starting USB...
+Bus xhci_pci: Register 4000840 NbrPorts 4
+Starting the controller
+USB XHCI 1.00
+scanning bus xhci_pci for devices... 3 USB Device(s) found
+       scanning usb for storage devices... 0 Storage Device(s) found
+
+Device 0: unknown device
+switch to partitions #0, OK
+mmc0 is current device
+Scanning mmc 0:3...
+Found /extlinux/extlinux.conf
+Retrieving file: /extlinux/extlinux.conf
+204 bytes read in 9 ms (21.5 KiB/s)
+1:	OpenEmbedded-SiFive-HiFive-Unmatched
+Retrieving file: /Image.gz
+7247925 bytes read in 4731 ms (1.5 MiB/s)
+append: root=/dev/mmcblk0p4 rootfstype=ext4 rootwait console=ttySIF0,115200 earlycon
+Retrieving file: /hifive-unmatched-a00.dtb
+10473 bytes read in 13 ms (786.1 KiB/s)
+   Uncompressing Kernel Image
+Moving Image from 0x84000000 to 0x80200000, end=810b2000
+## Flattened Device Tree blob at 88000000
+   Booting using the fdt blob at 0x88000000
+   Using Device Tree in place at 0000000088000000, end 00000000880058e8
+
+Starting kernel ...
+
+[    0.000000] Linux version 5.11.10 (oe-user@oe-host) (riscv64-oe-linux-gcc (GCC) 10.2.0, GNU ld (GNU Binutils) 2.36.1.20210209) #1 SMP Wed Apr 7 17:37:34 UTC 2021
+[    0.000000] OF: fdt: Ignoring memory range 0x80000000 - 0x80200000
+[    0.000000] earlycon: sifive0 at MMIO 0x0000000010010000 (options '')
+[    0.000000] printk: bootconsole [sifive0] enabled
+[    0.000000] efi: UEFI not found.
+[    0.000000] Zone ranges:
+[    0.000000]   DMA32    [mem 0x0000000080200000-0x00000000ffffffff]
+[    0.000000]   Normal   [mem 0x0000000100000000-0x000000047fffffff]
+[    0.000000] Movable zone start for each node
+[    0.000000] Early memory node ranges
+[    0.000000]   node   0: [mem 0x0000000080200000-0x000000047fffffff]
+[    0.000000] Initmem setup node 0 [mem 0x0000000080200000-0x000000047fffffff]
+[    0.000000]   DMA32 zone: 512 pages in unavailable ranges
+[    0.000000] SBI specification v0.2 detected
+[    0.000000] SBI implementation ID=0x1 Version=0x9
+[    0.000000] SBI v0.2 TIME extension detected
+[    0.000000] SBI v0.2 IPI extension detected
+[    0.000000] SBI v0.2 RFENCE extension detected
+[    0.000000] software IO TLB: mapped [mem 0x00000000fbfff000-0x00000000fffff000] (64MB)
+[    0.000000] SBI v0.2 HSM extension detected
+[    0.000000] CPU with hartid=0 is not available
+[    0.000000] CPU with hartid=0 is not available
+[    0.000000] riscv: ISA extensions acdfim
+[    0.000000] riscv: ELF capabilities acdfim
+[    0.000000] percpu: Embedded 26 pages/cpu s67032 r8192 d31272 u106496
+[    0.000000] Built 1 zonelists, mobility grouping on.  Total pages: 4136455
+[    0.000000] Kernel command line: root=/dev/mmcblk0p4 rootfstype=ext4 rootwait console=ttySIF0,115200 earlycon
+[    0.000000] Dentry cache hash table entries: 2097152 (order: 12, 16777216 bytes, linear)
+[    0.000000] Inode-cache hash table entries: 1048576 (order: 11, 8388608 bytes, linear)
+[    0.000000] Sorting __ex_table...
+[    0.000000] mem auto-init: stack:off, heap alloc:off, heap free:off
+[    0.000000] Memory: 16422848K/16775168K available (8526K kernel code, 1834K rwdata, 3927K rodata, 395K init, 350K bss, 352320K reserved, 0K cma-reserved)
+[    0.000000] SLUB: HWalign=64, Order=0-3, MinObjects=0, CPUs=4, Nodes=1
+[    0.000000] rcu: Hierarchical RCU implementation.
+[    0.000000] rcu: 	RCU restricting CPUs from NR_CPUS=8 to nr_cpu_ids=4.
+[    0.000000] 	Tracing variant of Tasks RCU enabled.
+[    0.000000] rcu: RCU calculated value of scheduler-enlistment delay is 25 jiffies.
+[    0.000000] rcu: Adjusting geometry for rcu_fanout_leaf=16, nr_cpu_ids=4
+[    0.000000] NR_IRQS: 64, nr_irqs: 64, preallocated irqs: 0
+[    0.000000] CPU with hartid=0 is not available
+[    0.000000] riscv-intc: unable to find hart id for /cpus/cpu@0/interrupt-controller
+[    0.000000] riscv-intc: 64 local interrupts mapped
+[    0.000000] plic: interrupt-controller@c000000: mapped 69 interrupts with 4 handlers for 9 contexts.
+[    0.000000] random: get_random_bytes called from start_kernel+0x360/0x4ba with crng_init=0
+[    0.000000] riscv_timer_init_dt: Registering clocksource cpuid [0] hartid [1]
+[    0.000000] clocksource: riscv_clocksource: mask: 0xffffffffffffffff max_cycles: 0x1d854df40, max_idle_ns: 3526361616960 ns
+[    0.000002] sched_clock: 64 bits at 1000kHz, resolution 1000ns, wraps every 2199023255500ns
+[    0.008506] Console: colour dummy device 80x25
+[    0.012847] Calibrating delay loop (skipped), value calculated using timer frequency.. 2.00 BogoMIPS (lpj=4000)
+[    0.022850] pid_max: default: 32768 minimum: 301
+[    0.028272] Mount-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.035844] Mountpoint-cache hash table entries: 32768 (order: 6, 262144 bytes, linear)
+[    0.045162] rcu: Hierarchical SRCU implementation.
+[    0.049474] EFI services will not be available.
+[    0.054103] smp: Bringing up secondary CPUs ...
+[    0.060396] smp: Brought up 1 node, 4 CPUs
+[    0.066898] devtmpfs: initialized
+[    0.071850] clocksource: jiffies: mask: 0xffffffff max_cycles: 0xffffffff, max_idle_ns: 7645041785100000 ns
+[    0.080876] futex hash table entries: 1024 (order: 4, 65536 bytes, linear)
+[    0.088587] NET: Registered protocol family 16
+[    0.092700] thermal_sys: Registered thermal governor 'step_wise'
+[    0.104618] iommu: Default domain type: Translated 
+[    0.114905] vgaarb: loaded
+[    0.117690] SCSI subsystem initialized
+[    0.121505] usbcore: registered new interface driver usbfs
+[    0.126714] usbcore: registered new interface driver hub
+[    0.131953] usbcore: registered new device driver usb
+[    0.137080] EDAC MC: Ver: 3.0.0
+[    0.140414] Advanced Linux Sound Architecture Driver Initialized.
+[    0.146693] clocksource: Switched to clocksource riscv_clocksource
+[    0.216382] VFS: Disk quotas dquot_6.6.0
+[    0.219652] VFS: Dquot-cache hash table entries: 512 (order 0, 4096 bytes)
+[    0.231330] NET: Registered protocol family 2
+[    0.235509] tcp_listen_portaddr_hash hash table entries: 8192 (order: 5, 131072 bytes, linear)
+[    0.244109] TCP established hash table entries: 131072 (order: 8, 1048576 bytes, linear)
+[    0.255939] TCP bind hash table entries: 65536 (order: 8, 1048576 bytes, linear)
+[    0.266840] TCP: Hash tables configured (established 131072 bind 65536)
+[    0.273306] UDP hash table entries: 8192 (order: 6, 262144 bytes, linear)
+[    0.280619] UDP-Lite hash table entries: 8192 (order: 6, 262144 bytes, linear)
+[    0.288469] NET: Registered protocol family 1
+[    0.292774] RPC: Registered named UNIX socket transport module.
+[    0.297978] RPC: Registered udp transport module.
+[    0.302662] RPC: Registered tcp transport module.
+[    0.307353] RPC: Registered tcp NFSv4.1 backchannel transport module.
+[    0.313780] PCI: CLS 0 bytes, default 64
+[    0.318708] Initialise system trusted keyrings
+[    0.322585] workingset: timestamp_bits=62 max_order=22 bucket_order=0
+[    0.334715] NFS: Registering the id_resolver key type
+[    0.339021] Key type id_resolver registered
+[    0.343173] Key type id_legacy registered
+[    0.347241] nfs4filelayout_init: NFSv4 File Layout Driver Registering...
+[    0.353859] Installing knfsd (copyright (C) 1996 okir@monad.swb.de).
+[    0.361216] 9p: Installing v9fs 9p2000 file system support
+[    0.366710] NET: Registered protocol family 38
+[    0.370382] Key type asymmetric registered
+[    0.374471] Asymmetric key parser 'x509' registered
+[    0.379370] Block layer SCSI generic (bsg) driver version 0.4 loaded (major 252)
+[    0.386719] io scheduler mq-deadline registered
+[    0.391233] io scheduler kyber registered
+[    1.485972] shpchp: Standard Hot Plug PCI Controller Driver version: 0.4
+[    1.530735] fu740-pcie e00000000.pcie: host bridge /soc/pcie@e00000000 ranges:
+[    1.537300] fu740-pcie e00000000.pcie:       IO 0x0060080000..0x006008ffff -> 0x0060080000
+[    1.545536] fu740-pcie e00000000.pcie:      MEM 0x0060090000..0x0070ffffff -> 0x0060090000
+[    1.553757] fu740-pcie e00000000.pcie:      MEM 0x2000000000..0x3fffffffff -> 0x2000000000
+[    1.671632] fu740-pcie e00000000.pcie: invalid resource
+[    1.676111] fu740-pcie e00000000.pcie: iATU unroll: enabled
+[    1.681660] fu740-pcie e00000000.pcie: Detected iATU regions: 8 outbound, 8 inbound
+[    1.789339] fu740-pcie e00000000.pcie: Link up
+[    1.793157] fu740-pcie e00000000.pcie: PCI host bridge to bus 0000:00
+[    1.799454] pci_bus 0000:00: root bus resource [bus 00-ff]
+[    1.804916] pci_bus 0000:00: root bus resource [io  0x0000-0xffff] (bus address [0x60080000-0x6008ffff])
+[    1.814380] pci_bus 0000:00: root bus resource [mem 0x60090000-0x70ffffff]
+[    1.821241] pci_bus 0000:00: root bus resource [mem 0x2000000000-0x3fffffffff pref]
+[    1.828924] pci 0000:00:00.0: [f15e:0000] type 01 class 0x060400
+[    1.834889] pci 0000:00:00.0: reg 0x10: [mem 0x00000000-0x000fffff]
+[    1.841136] pci 0000:00:00.0: reg 0x38: [mem 0x00000000-0x0000ffff pref]
+[    1.847878] pci 0000:00:00.0: supports D1
+[    1.851820] pci 0000:00:00.0: PME# supported from D0 D1 D3hot
+[    1.858419] pci 0000:01:00.0: [1b21:2824] type 01 class 0x060400
+[    1.863730] pci 0000:01:00.0: enabling Extended Tags
+[    1.868723] pci 0000:01:00.0: PME# supported from D0 D3hot D3cold
+[    1.887241] pci 0000:01:00.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    1.894626] pci 0000:02:00.0: [1b21:2824] type 01 class 0x060400
+[    1.900548] pci 0000:02:00.0: enabling Extended Tags
+[    1.905540] pci 0000:02:00.0: PME# supported from D0 D3hot D3cold
+[    1.911835] pci 0000:02:02.0: [1b21:2824] type 01 class 0x060400
+[    1.917571] pci 0000:02:02.0: enabling Extended Tags
+[    1.922564] pci 0000:02:02.0: PME# supported from D0 D3hot D3cold
+[    1.928812] pci 0000:02:03.0: [1b21:2824] type 01 class 0x060400
+[    1.934594] pci 0000:02:03.0: enabling Extended Tags
+[    1.939588] pci 0000:02:03.0: PME# supported from D0 D3hot D3cold
+[    1.945845] pci 0000:02:04.0: [1b21:2824] type 01 class 0x060400
+[    1.951619] pci 0000:02:04.0: enabling Extended Tags
+[    1.956612] pci 0000:02:04.0: PME# supported from D0 D3hot D3cold
+[    1.962932] pci 0000:02:08.0: [1b21:2824] type 01 class 0x060400
+[    1.968643] pci 0000:02:08.0: enabling Extended Tags
+[    1.973636] pci 0000:02:08.0: PME# supported from D0 D3hot D3cold
+[    1.980278] pci 0000:02:00.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    1.987612] pci 0000:02:02.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    1.995597] pci 0000:02:03.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    2.003587] pci 0000:02:04.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    2.011588] pci 0000:02:08.0: bridge configuration invalid ([bus 00-00]), reconfiguring
+[    2.020167] pci_bus 0000:03: busn_res: [bus 03-ff] end is updated to 03
+[    2.026308] pci 0000:04:00.0: [1b21:1142] type 00 class 0x0c0330
+[    2.032197] pci 0000:04:00.0: reg 0x10: [mem 0x00000000-0x00007fff 64bit]
+[    2.039117] pci 0000:04:00.0: PME# supported from D3cold
+[    2.055239] pci_bus 0000:04: busn_res: [bus 04-ff] end is updated to 04
+[    2.061694] pci_bus 0000:05: busn_res: [bus 05-ff] end is updated to 05
+[    2.068297] pci_bus 0000:06: busn_res: [bus 06-ff] end is updated to 06
+[    2.074912] pci_bus 0000:07: busn_res: [bus 07-ff] end is updated to 07
+[    2.080904] pci_bus 0000:02: busn_res: [bus 02-ff] end is updated to 07
+[    2.087503] pci_bus 0000:01: busn_res: [bus 01-ff] end is updated to 07
+[    2.094136] pci 0000:00:00.0: BAR 0: assigned [mem 0x60100000-0x601fffff]
+[    2.100879] pci 0000:00:00.0: BAR 14: assigned [mem 0x60200000-0x602fffff]
+[    2.107737] pci 0000:00:00.0: BAR 6: assigned [mem 0x60090000-0x6009ffff pref]
+[    2.114948] pci 0000:01:00.0: BAR 14: assigned [mem 0x60200000-0x602fffff]
+[    2.121811] pci 0000:02:02.0: BAR 14: assigned [mem 0x60200000-0x602fffff]
+[    2.128670] pci 0000:02:00.0: PCI bridge to [bus 03]
+[    2.133639] pci 0000:04:00.0: BAR 0: assigned [mem 0x60200000-0x60207fff 64bit]
+[    2.140933] pci 0000:02:02.0: PCI bridge to [bus 04]
+[    2.145871] pci 0000:02:02.0:   bridge window [mem 0x60200000-0x602fffff]
+[    2.152650] pci 0000:02:03.0: PCI bridge to [bus 05]
+[    2.157606] pci 0000:02:04.0: PCI bridge to [bus 06]
+[    2.162557] pci 0000:02:08.0: PCI bridge to [bus 07]
+[    2.167515] pci 0000:01:00.0: PCI bridge to [bus 02-07]
+[    2.172715] pci 0000:01:00.0:   bridge window [mem 0x60200000-0x602fffff]
+[    2.179496] pci 0000:00:00.0: PCI bridge to [bus 01-07]
+[    2.184693] pci 0000:00:00.0:   bridge window [mem 0x60200000-0x602fffff]
+[    2.192028] pcieport 0000:00:00.0: AER: enabled with IRQ 46
+[    2.197165] pcieport 0000:01:00.0: enabling device (0000 -> 0002)
+[    2.203745] pcieport 0000:02:02.0: enabling device (0000 -> 0002)
+[    2.210314] pci 0000:04:00.0: enabling device (0000 -> 0002)
+[    2.215486] switchtec: loaded.
+[    2.218484] L2CACHE: DataError @ 0x00000006.BC0346F0
+[    2.218537] L2CACHE: No. of Banks in the cache: 4
+[    2.227889] L2CACHE: No. of ways per bank: 16
+[    2.232229] L2CACHE: Sets per bank: 512
+[    2.236051] L2CACHE: Bytes per cache block: 64
+[    2.240480] L2CACHE: Index of the largest way enabled: 15
+[    2.279667] Serial: 8250/16550 driver, 4 ports, IRQ sharing disabled
+[    2.286353] 10010000.serial: ttySIF0 at MMIO 0x10010000 (irq = 1, base_baud = 115200) is a SiFive UART v0
+[    2.295208] printk: console [ttySIF0] enabled
+[    2.295208] printk: console [ttySIF0] enabled
+[    2.303861] printk: bootconsole [sifive0] disabled
+[    2.303861] printk: bootconsole [sifive0] disabled
+[    2.313713] 10011000.serial: ttySIF1 at MMIO 0x10011000 (irq = 2, base_baud = 115200) is a SiFive UART v0
+[    2.336969] loop: module loaded
+[    2.367805] Rounding down aligned max_sectors from 4294967295 to 4294967288
+[    2.374268] db_root: cannot open: /etc/target
+[    2.379031] sifive_spi 10040000.spi: mapped; irq=4, cs=1
+[    2.384331] spi-nor spi0.0: is25wp256 (32768 Kbytes)
+[    2.390467] sifive_spi 10050000.spi: mapped; irq=6, cs=1
+[    2.395886] libphy: Fixed MDIO Bus: probed
+[    2.399836] macb 10090000.ethernet: Registered clk switch 'sifive-gemgxl-mgmt'
+[    2.406869] libphy: MACB_mii_bus: probed
+[    2.411727] macb 10090000.ethernet eth0: Cadence GEM rev 0x10070109 at 0x10090000 irq 7 (70:b3:d5:92:fe:38)
+[    2.420880] e1000e: Intel(R) PRO/1000 Network Driver
+[    2.425679] e1000e: Copyright(c) 1999 - 2015 Intel Corporation.
+[    2.431830] ehci_hcd: USB 2.0 'Enhanced' Host Controller (EHCI) Driver
+[    2.438098] ehci-pci: EHCI PCI platform driver
+[    2.442564] ohci_hcd: USB 1.1 'Open' Host Controller (OHCI) Driver
+[    2.448703] ohci-pci: OHCI PCI platform driver
+[    2.453163] uhci_hcd: USB Universal Host Controller Interface driver
+[    2.459688] xhci_hcd 0000:04:00.0: xHCI Host Controller
+[    2.464798] xhci_hcd 0000:04:00.0: new USB bus registered, assigned bus number 1
+[    2.612856] xhci_hcd 0000:04:00.0: hcc params 0x0200e080 hci version 0x100 quirks 0x0000000010800410
+[    2.621992] usb usb1: New USB device found, idVendor=1d6b, idProduct=0002, bcdDevice= 5.11
+[    2.629513] usb usb1: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    2.636710] usb usb1: Product: xHCI Host Controller
+[    2.641574] usb usb1: Manufacturer: Linux 5.11.10 xhci-hcd
+[    2.647046] usb usb1: SerialNumber: 0000:04:00.0
+[    2.651978] hub 1-0:1.0: USB hub found
+[    2.655428] hub 1-0:1.0: 2 ports detected
+[    2.659656] xhci_hcd 0000:04:00.0: xHCI Host Controller
+[    2.664695] xhci_hcd 0000:04:00.0: new USB bus registered, assigned bus number 2
+[    2.671989] xhci_hcd 0000:04:00.0: Host supports USB 3.0 SuperSpeed
+[    2.679023] usb usb2: We don't know the algorithms for LPM for this host, disabling LPM.
+[    2.686443] usb usb2: New USB device found, idVendor=1d6b, idProduct=0003, bcdDevice= 5.11
+[    2.694611] usb usb2: New USB device strings: Mfr=3, Product=2, SerialNumber=1
+[    2.701811] usb usb2: Product: xHCI Host Controller
+[    2.706672] usb usb2: Manufacturer: Linux 5.11.10 xhci-hcd
+[    2.712143] usb usb2: SerialNumber: 0000:04:00.0
+[    2.717012] hub 2-0:1.0: USB hub found
+[    2.720513] hub 2-0:1.0: 2 ports detected
+[    2.724825] usbcore: registered new interface driver usb-storage
+[    2.730591] usbcore: registered new interface driver usbserial_generic
+[    2.737008] usbserial: USB Serial support registered for generic
+[    2.743099] mousedev: PS/2 mouse device common for all mice
+[    2.748579] usbcore: registered new interface driver usbtouchscreen
+[    2.754838] i2c /dev entries driver
+[    2.758953] poweroff-gpio gpio-poweroff: gpio_poweroff_probe: pm_power_off function already registered
+[    2.767580] poweroff-gpio: probe of gpio-poweroff failed with error -16
+[    2.774384] lm90 0-004c: supply vcc not found, using dummy regulator
+[    2.782224] EDAC DEVICE0: Giving out device to module Sifive ECC Manager controller sifive_edac.0: DEV sifive_edac.0 (INTERRUPT)
+[    2.818424] mmc_spi spi1.0: SD/MMC host mmc0, no DMA, no WP, no poweroff, cd polling
+[    2.826015] ledtrig-cpu: registered to indicate activity on CPUs
+[    2.831553] usbcore: registered new interface driver usbhid
+[    2.836963] usbhid: USB HID core driver
+[    2.841044] usbcore: registered new interface driver snd-usb-audio
+[    2.847646] NET: Registered protocol family 10
+[    2.852372] Segment Routing with IPv6
+[    2.855348] sit: IPv6, IPv4 and MPLS over IPv4 tunneling driver
+[    2.861694] NET: Registered protocol family 17
+[    2.865812] 9pnet: Installing 9P2000 support
+[    2.869888] Key type dns_resolver registered
+[    2.874286] Loading compiled-in X.509 certificates
+[    2.880245] ALSA device list:
+[    2.882443]   No soundcards found.
+[    2.886645] Waiting for root device /dev/mmcblk0p4...
+[    2.935123] mmc0: host does not support reading read-only switch, assuming write-enable
+[    2.942387] mmc0: new SDHC card on SPI
+[    2.947448] mmcblk0: mmc0:0000 SD32G 29.7 GiB 
+[    2.983465]  mmcblk0: p1 p2 p3 p4
+[    3.090705] usb 1-2: new high-speed USB device number 2 using xhci_hcd
+[    3.095859] EXT4-fs (mmcblk0p4): INFO: recovery required on readonly filesystem
+[    3.103787] EXT4-fs (mmcblk0p4): write access will be enabled during recovery
+[    3.544710] usb 1-2: New USB device found, idVendor=174c, idProduct=2074, bcdDevice= 0.01
+[    3.552135] usb 1-2: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.559252] usb 1-2: Product: AS2107
+[    3.562815] usb 1-2: Manufacturer: ASMedia
+[    3.566894] usb 1-2: SerialNumber: USB2.0 Hub
+[    3.640136] hub 1-2:1.0: USB hub found
+[    3.643332] hub 1-2:1.0: 4 ports detected
+[    3.691690] usb 2-2: new SuperSpeed Gen 1 USB device number 2 using xhci_hcd
+[    3.722334] usb 2-2: New USB device found, idVendor=174c, idProduct=3074, bcdDevice= 0.01
+[    3.729747] usb 2-2: New USB device strings: Mfr=2, Product=3, SerialNumber=1
+[    3.736875] usb 2-2: Product: AS2107
+[    3.740428] usb 2-2: Manufacturer: ASMedia
+[    3.744510] usb 2-2: SerialNumber: USB2.0 Hub
+[    3.840888] hub 2-2:1.0: USB hub found
+[    3.844602] hub 2-2:1.0: 4 ports detected
+[   11.745321] EXT4-fs (mmcblk0p4): recovery complete
+[   11.755508] EXT4-fs (mmcblk0p4): mounted filesystem with ordered data mode. Opts: (null). Quota mode: none.
+[   11.764567] VFS: Mounted root (ext4 filesystem) readonly on device 179:4.
+[   11.774408] devtmpfs: mounted
+[   11.777752] Freeing unused kernel memory: 392K
+[   11.781447] Kernel memory protection not selected by kernel config.
+[   11.787698] Run /sbin/init as init process
+[   15.318291] systemd[1]: System time before build time, advancing clock.
+[   15.763880] systemd[1]: systemd 247.3+ running in system mode. (+PAM -AUDIT -SELINUX +IMA -APPARMOR -SMACK +SYSVINIT +UTMP -LIBCRYPTSETUP -GCRYPT -GNUTLS +ACL +XZ -LZ4 -ZSTD -SECCOMP +BLKID -ELFUTILS +KMOD -IDN2 -IDN -PCRE2 default-hierarchy=hybrid)
+[   15.785459] systemd[1]: Detected architecture riscv64.
+
+Welcome to FreedomUSDK 2021.03.01 (2021March)!
+
+[   15.808226] systemd[1]: Set hostname to <unmatched>.
+[   17.527666] systemd[1]: Queued start job for default target Graphical Interface.
+[   17.538921] random: systemd: uninitialized urandom read (16 bytes read)
+[   17.558542] systemd[1]: Created slice system-getty.slice.
+[  OK  ] Created slice system-getty.slice.
+[   17.569575] random: systemd: uninitialized urandom read (16 bytes read)
+[   17.576252] systemd[1]: Created slice system-modprobe.slice.
+[  OK  ] Created slice system-modprobe.slice.
+[   17.587692] random: systemd: uninitialized urandom read (16 bytes read)
+[   17.594656] systemd[1]: Created slice system-serial\x2dgetty.slice.
+[  OK  ] Created slice system-serial\x2dgetty.slice.
+[   17.607725] systemd[1]: Created slice User and Session Slice.
+[  OK  ] Created slice User and Session Slice.
+[   17.619400] systemd[1]: Started Dispatch Password Requests to Console Directory Watch.
+[  OK  ] Started Dispatch Password âts to Console Directory Watch.
+[   17.635586] systemd[1]: Started Forward Password Requests to Wall Directory Watch.
+[  OK  ] Started Forward Password Râuests to Wall Directory Watch.
+[   17.651635] systemd[1]: Reached target Paths.
+[  OK  ] Reached target Paths.
+[   17.660276] systemd[1]: Reached target Remote File Systems.
+[  OK  ] Reached target Remote File Systems.
+[   17.672049] systemd[1]: Reached target Slices.
+[  OK  ] Reached target Slices.
+[   17.681915] systemd[1]: Reached target Swap.
+[  OK  ] Reached target Swap.
+[   17.690424] systemd[1]: Reached target System Time Set.
+[  OK  ] Reached target System Time Set.
+[   17.701764] systemd[1]: Reached target System Time Synchronized.
+[  OK  ] Reached target System Time Synchronized.
+[   17.802740] systemd[1]: Listening on RPCbind Server Activation Socket.
+[  OK  ] Listening on RPCbind Server Activation Socket.
+[   17.816340] systemd[1]: Reached target RPC Port Mapper.
+[  OK  ] Reached target RPC Port Mapper.
+[   17.827391] systemd[1]: Listening on initctl Compatibility Named Pipe.
+[  OK  ] Listening on initctl Compatibility Named Pipe.
+[   17.843697] systemd[1]: Condition check resulted in Journal Audit Socket being skipped.
+[   17.851511] systemd[1]: Listening on Journal Socket (/dev/log).
+[  OK  ] Listening on Journal Socket (/dev/log).
+[   17.864311] systemd[1]: Listening on Journal Socket.
+[  OK  ] Listening on Journal Socket.
+[   17.874632] systemd[1]: Listening on udev Control Socket.
+[  OK  ] Listening on udev Control Socket.
+[   17.886013] systemd[1]: Listening on udev Kernel Socket.
+[  OK  ] Listening on udev Kernel Socket.
+[   17.897258] systemd[1]: Listening on User Database Manager Socket.
+[  OK  ] Listening on User Database Manager Socket.
+[   17.910166] systemd[1]: Condition check resulted in Huge Pages File System being skipped.
+[   17.919815] systemd[1]: Mounting POSIX Message Queue File System...
+         Mounting POSIX Message Queue File System...
+[   17.934162] systemd[1]: Mounting Kernel Debug File System...
+         Mounting Kernel Debug File System...
+[   17.946780] systemd[1]: Mounting Kernel Trace File System...
+         Mounting Kernel Trace File System...
+[   17.962772] systemd[1]: Mounting Temporary Directory (/tmp)...
+         Mounting Temporary Directory (/tmp)...
+[   17.976482] systemd[1]: Starting Create list of static device nodes for the current kernel...
+         Starting Create list of stâodes for the current kernel...
+[   17.994325] systemd[1]: Starting Load Kernel Module configfs...
+         Starting Load Kernel Module configfs...
+[   18.007523] systemd[1]: Starting Load Kernel Module drm...
+         Starting Load Kernel Module drm...
+[   18.020122] systemd[1]: Starting Load Kernel Module fuse...
+         Starting Load Kernel Module fuse...
+[   18.046068] systemd[1]: Starting RPC Bind...
+         Starting RPC Bind...
+[   18.056526] systemd[1]: Starting File System Check on Root Device...
+         Starting File System Check on Root Device...
+[   18.318798] systemd[1]: Condition check resulted in Load Kernel Modules being skipped.
+[   18.328276] systemd[1]: Mounting NFSD configuration filesystem...
+         Mounting    18.336337] systemd[1]: Starting Apply Kernel Variables...
+39mNFSD configuration filesystem[   18.344245] systemd[1]: Starting Coldplug All udev Devices...
+...
+         Starting Apply Kernel Variables...
+         Starting Coldplug A[   18.359308] systemd[1]: Mounted POSIX Message Queue File System.
+[   18.365169] systemd[1]: Mounted Kernel Debug File System.
+[   18.370410] systemd[1]: Mounted Kernel Trace File System.
+[   18.375783] systemd[1]: Mounted Temporary Directory (/tmp).
+ll udev [   18.382136] systemd[1]: Finished Create list of static device nodes for the current kernel.
+Devices  18.390914] systemd[1]: modprobe@configfs.service: Succeeded.
+[   18.397147] systemd[1]: Finished Load Kernel Module configfs.
+[0m...
+[   18.403102] systemd[1]: modprobe@drm.service: Succeeded.
+[   18.408782] systemd[1]: Finished Load Kernel Module drm.
+[   18.413873] systemd[1]: Mounted NFSD configuration filesystem.
+[  OK  ] Mounted    18.422202] systemd[1]: Mounting Kernel Configuration File System...
+1;39mPOSIX Message Queue[   18.431126] systemd[1]: Mounted Kernel Configuration File System.
+ File System.
+[  OK  ] Mounted   18.440783] random: fast init done
+[0;1;39mKernel Debug File System.
+[  OK  ] Mounted Kernel Trace File System.
+[  OK  ] Mounted Temporary Directory (/tmp).
+[  OK  ] Finished Create list of stâ nodes for the current kernel.
+[  OK  ] Finished Load Kernel Module configfs.
+[  OK  ] Finished Load Kernel Module drm.
+[  OK  ] Mounted NFSD configuration filesystem.
+         Mounting Kernel Configuration File System...
+[  OK  ] Mounted Kernel Configuration File System.
+[   19.442845] fuse: init (API version 7.33)
+[   19.448617] systemd[1]: modprobe@fuse.service: Succeeded.
+[   19.453965] systemd[1]: Finished Load Kernel Module fuse.
+[  OK  ] Finished    19.461624] systemd[1]: Mounting FUSE Control File System...
+;1;39mLoad Kernel Module fuse.
+         Mounting    19.472180] systemd[1]: Mounted FUSE Control File System.
+0;1;39mFUSE Control File System  19.480290] systemd[1]: Finished Apply Kernel Variables.
+[0m...
+[  OK  ] Mounted FUSE Control File System.
+[  OK  ] Finished Apply Kernel Variables.
+[   20.383066] systemd[1]: Started RPC Bind.
+[  OK  ] Started RPC Bind.
+[   20.746785] systemd[1]: Finished Coldplug All udev Devices.
+[  OK  ] Finished Coldplug All udev Devices.
+[   21.437954] systemd[1]: Finished File System Check on Root Device.
+[  OK  ] Finished File System Check on Root Device.
+[   21.453113] systemd[1]: Starting Remount Root and Kernel File Systems...
+         Starting Remount Root and Kernel File Systems...
+[   21.484912] EXT4-fs (mmcblk0p4): re-mounted. Opts: (null). Quota mode: none.
+[   21.494395] systemd[1]: Finished Remount Root and Kernel File Systems.
+[  OK  ] Finished Remount Root and Kernel File Systems.
+[   21.514804] systemd[1]: Condition check resulted in Rebuild Hardware Database being skipped.
+[   21.522743] systemd[1]: Condition check resulted in Platform Persistent Storage Archival being skipped.
+[   21.532061] systemd[1]: Condition check resulted in Create System Users being skipped.
+[   21.542293] systemd[1]: Starting Create Static Device Nodes in /dev...
+         Starting Create Static Device Nodes in /dev...
+[   21.691501] systemd[1]: Finished Create Static Device Nodes in /dev.
+[  OK  ] Finished Create Static Device Nodes in /dev.
+[   21.704414] systemd[1]: Reached target Local File Systems (Pre).
+[  OK  ] Reached target Local File Systems (Pre).
+[   21.722430] systemd[1]: Mounting /var/volatile...
+         Mounting /var/volatile...
+[   21.734263] systemd[1]: Started Entropy Daemon based on the HAVEGE algorithm.
+[  OK  ] Started Entropy Daemon based on the HAVEGE algorithm.
+[   21.753504] systemd[1]: Starting Journal Service...
+         Starting Journal Service...
+[   21.767686] systemd[1]: Starting Rule-based Manager for Device Events and Files...
+         Starting Rule-based Manageâfor Device Events and Files...
+[   21.785817] systemd[1]: Mounted /var/volatile.
+[  OK  ] Mounted /var/volatile.
+[   21.795753] systemd[1]: Condition check resulted in Bind mount volatile /var/cache being skipped.
+[   21.804001] systemd[1]: Condition check resulted in Bind mount volatile /var/lib being skipped.
+[   21.815404] systemd[1]: Starting Load/Save Random Seed...
+         Starting Load/Save Random Seed...
+[   21.825941] systemd[1]: Condition check resulted in Bind mount volatile /var/spool being skipped.
+[   21.834271] systemd[1]: Condition check resulted in Bind mount volatile /srv being skipped.
+[   22.293317] systemd[1]: Started Journal Service.
+[  OK  ] Started Journal Service.
+         Starting Flush Journal to Persistent Storage...
+[   22.378650] systemd-journald[133]: Received client request to flush runtime journal.
+[  OK  ] Finished Flush Journal to Persistent Storage.
+[  OK  ] Started Rule-based Manager for Device Events and Files.
+[   23.679501] random: crng init done
+[   23.682149] random: 7 urandom warning(s) missed due to ratelimiting
+[  OK  ] Finished Load/Save Random Seed.
+[*     ] A start job is running for /dev/mmcblk0p3 (9s / 1min 30s)
+[**    ] A start job is running for /dev/mmcblk0p3 (9s / 1min 30s)
+[  OK  ] Found device /dev/mmcblk0p3.
+         Mounting /boot...
+[   27.305711] FAT-fs (mmcblk0p3): Volume was not properly unmounted. Some data may be corrupt. Please run fsck.
+[  OK  ] Mounted /boot.
+[  OK  ] Reached target Local File Systems.
+         Starting Create Volatile Files and Directories...
+[  OK  ] Finished Create Volatile Files and Directories.
+         Starting Network Name Resolution...
+         Starting Update UTMP about System Boot/Shutdown...
+[  OK  ] Finished Update UTMP about System Boot/Shutdown.
+[  OK  ] Reached target System Initialization.
+[  OK  ] Started Daily rotation of log files.
+[  OK  ] Started Daily Cleanup of Temporary Directories.
+[  OK  ] Listening on Avahi mDNS/DNS-SD Stack Activation Socket.
+[  OK  ] Listening on D-Bus System Message Bus Socket.
+[  OK  ] Reached target Sockets.
+[  OK  ] Reached target Basic System.
+[  OK  ] Started Job spooling tools.
+         Starting NTP client/server...
+         Starting Console System Startup Logging...
+[  OK  ] Started Periodic Command Scheduler.
+[  OK  ] Started D-Bus System Message Bus.
+         Starting IPv6 Packet Filtering Framework...
+         Starting IPv4 Packet Filtering Framework...
+         Starting Telephony service...
+         Starting User Login Management...
+[  OK  ] Started Xserver startup without a display manager.
+[  OK  ] Started NTP client/server.
+[  OK  ] Finished Console System Startup Logging.
+[  OK  ] Started Network Name Resolution.
+[  OK  ] Reached target Host and Network Name Lookups.
+         Starting Avahi mDNS/DNS-SD Stack...
+[  OK  ] Finished IPv6 Packet Filtering Framework.
+[  OK  ] Finished IPv4 Packet Filtering Framework.
+[  OK  ] Reached target Network (Pre).
+         Starting Network Manager...
+[***   ] (1 of 4) A start job is running for Network Manager (15s / 1min 42s)
+[ ***  ] (2 of 4) A start job is running forâ Login Management (15s / 1min 40s)
+[  OK  ] Started User Login Management.
+[  OK  ] Started Avahi mDNS/DNS-SD Stack.
+[  OK  ] Started Telephony service.
+[  *** ] A start job is running for Network Manager (17s / 1min 42s)
+[   ***] A start job is running for Network Manager (18s / 1min 42s)
+[    **] A start job is running for Network Manager (18s / 1min 42s)
+[     *] A start job is running for Network Manager (19s / 1min 42s)
+[    **] A start job is running for Network Manager (20s / 1min 42s)
+[   ***] A start job is running for Network Manager (20s / 1min 42s)
+[  *** ] A start job is running for Network Manager (21s / 1min 42s)
+[ ***  ] A start job is running for Network Manager (21s / 1min 42s)
+[***   ] A start job is running for Network Manager (22s / 1min 42s)
+[**    ] A start job is running for Network Manager (23s / 1min 42s)
+[*     ] A start job is running for Network Manager (23s / 1min 42s)
+[**    ] A start job is running for Network Manager (24s / 1min 42s)
+[   42.217335] Bluetooth: Core ver 2.22
+[   42.220320] NET: Registered protocol family 31
+[   42.224640] Bluetooth: HCI device and connection manager initialized
+[   42.230963] Bluetooth: HCI socket layer initialized
+[   42.235810] Bluetooth: L2CAP socket layer initialized
+[   42.240859] Bluetooth: SCO socket layer initialized
+[***   ] A start job is running for Network Manager (24s / 1min 42s)
+[ ***  ] A start job is running for Network Manager (25s / 1min 42s)
+[  OK  ] Started Network Manager.
+[  OK  ] Reached target Network.
+         Starting DNS forwarder and DHCP server...
+[  OK  ] Started Respond to IPv6 Node Information Queries.
+[  OK  ] Started Network Router Discovery Daemon.
+         Starting Permit User Sessions...
+[  OK  ] Started Xinetd A Powerful Replacement For Inetd.
+[  OK  ] Finished Permit User Sessions.
+[  OK  ] Started Getty on tty1.
+[  OK  ] Started Serial Getty on ttySIF0.
+[  OK  ] Reached target Login Prompts.
+[  OK  ] Started timer to trun-on green LED.
+[  OK  ] Reached target Timers.
+[  OK  ] Started DNS forwarder and DHCP server.
+[  OK  ] Reached target Multi-User System.
+[  OK  ] Reached target Graphical Interface.
+         Starting Update UTMP about System Runlevel Changes...
+         Starting Hostname Service...
+[  OK  ] Finished Update UTMP about System Runlevel Changes.
+[  OK  ] Started Hostname Service.
+[   44.702720] macb 10090000.ethernet eth0: PHY [10090000.ethernet-ffffffff:00] driver [Microsemi VSC8541 SyncE] (irq=POLL)
+[   44.712857] macb 10090000.ethernet eth0: configuring for phy/gmii link mode
+
+FreedomUSDK 2021.03.01 unmatched ttySIF0
+
+unmatched login: 
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== eleven benchmarks on U74, four events each ===
+
+aha-mont64     g1  L=4639 S=2265 B=912 J=22
+aha-mont64     g2  L=9266 S=4523 B=1821 J=42
+aha-mont64     g3  L=13893 S=6781 B=2730 J=62
+crc32          g1  L=1046867 S=524115 B=174761 J=174422
+crc32          g2  L=2092877 S=1047885 B=349181 J=348842
+crc32          g3  L=3138887 S=1571655 B=523601 J=523262
+depthconv      g1  L=10152 S=3973 B=1261 J=338
+depthconv      g2  L=20293 S=7939 B=2519 J=674
+depthconv      g3  L=30434 S=11905 B=3777 J=1010
+edn            g1  L=60821 S=16207 B=5080 J=12
+edn            g2  L=121631 S=32407 B=10157 J=22
+edn            g3  L=182441 S=48607 B=15234 J=32
+huffbench      g1  L=197127 S=69624 B=58633 J=108
+huffbench      g2  L=394243 S=139241 B=117263 J=214
+huffbench      g3  L=591359 S=208858 B=175893 J=320
+matmult-int    g1  L=62823 S=14820 B=15247 J=6
+matmult-int    g2  L=125635 S=29633 B=30491 J=10
+matmult-int    g3  L=188447 S=44446 B=45735 J=14
+md5sum         g1  L=31182 S=13019 B=6975 J=15
+md5sum         g2  L=62348 S=26029 B=13947 J=27
+md5sum         g3  L=93514 S=39039 B=20919 J=39
+nettle-aes     g1  L=36589 S=5918 B=1003 J=13
+nettle-aes     g2  L=73167 S=11829 B=2003 J=24
+nettle-aes     g3  L=109745 S=17740 B=3003 J=35
+nettle-sha256  g1  L=4507 S=964 B=288 J=19
+nettle-sha256  g2  L=9003 S=1921 B=573 J=36
+nettle-sha256  g3  L=13499 S=2878 B=858 J=53
+nsichneu       g1  L=1261 S=262 B=628 J=2
+nsichneu       g2  L=2512 S=518 B=1253 J=2
+nsichneu       g3  L=3763 S=774 B=1878 J=2
+picojpeg       g1  L=486584 S=283795 B=63844 J=28816
+picojpeg       g2  L=973157 S=567583 B=127685 J=57630
+picojpeg       g3  L=1459730 S=851371 B=191526 J=86444
+
+=== done ===
