@@ -79,6 +79,16 @@ uint64_t attest_now_insn(void)
 void attest_add_class_insn(uint64_t us) { class_insn += us; }
 uint64_t attest_class_insn(void)        { return class_insn; }
 
+static uint64_t svc_insn;
+
+/*
+ * The whole command, from the dispatch into the service until it returns.
+ * cost_insn and class_insn are parts of this interval, not additions to
+ * it, so the three figures are reported side by side rather than summed.
+ */
+void attest_add_svc_insn(uint64_t n) { svc_insn += n; }
+uint64_t attest_svc_insn(void)       { return svc_insn; }
+
 uint64_t attest_cost_insn(void)      { return cost_insn; }
 uint64_t attest_work_insn(void)      { return work_insn; }
 uint32_t attest_window_count(void) { return window_n; }
@@ -89,6 +99,7 @@ void attest_cost_reset(void)
     work_insn = 0;
     window_n = 0;
     class_insn = 0;
+    svc_insn = 0;
 }
 static uint32_t dropped;
 

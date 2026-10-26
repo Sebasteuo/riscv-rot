@@ -91,6 +91,8 @@ uint64_t attest_work_insn(void);       /* instructions retired between open and 
 uint32_t attest_window_count(void);  /* windows measured so far */
 uint64_t attest_class_insn(void);      /* instructions retired deciding, inside the device */
 void     attest_add_class_insn(uint64_t us);
+uint64_t attest_svc_insn(void);      /* the whole command, dispatch to return */
+void     attest_add_svc_insn(uint64_t n);
 uint64_t attest_now_insn(void);      /* retired instructions, for the cost figures */
 void     attest_cost_reset(void);
 

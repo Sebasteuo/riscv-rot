@@ -1037,15 +1037,6 @@ static void process_attest_end(volatile uint32_t *shared)
         profile_verdict_t v = profile_check(attest_get_app(), delta);
         attest_add_class_insn(attest_now_insn() - ct0);
 
-        uart_puts("[COST] service ");
-        uart_put_dec(attest_cost_insn());
-        uart_puts(" work ");
-        uart_put_dec(attest_work_insn());
-        uart_puts(" class ");
-        uart_put_dec(attest_class_insn());
-        uart_puts(" windows ");
-        uart_put_dec(attest_window_count());
-        uart_puts("\n");
 
         uart_puts("[ATT] Verdict: ");
         uart_puts(profile_verdict_name(v));
@@ -1232,7 +1223,7 @@ static void process_shared_command(void)
      * relationship. Freshness comes from the nonce instead.
      */
     case SHARED_CMD_ATTEST_BEGIN:
-        process_attest_begin(shared);
+        { uint64_t a = attest_now_insn(); process_attest_begin(shared); attest_add_svc_insn(attest_now_insn() - a); }
         break;
 
     case SHARED_CMD_ATTEST_COST: {
@@ -1280,7 +1271,13 @@ static void process_shared_command(void)
          * path has no rate limit, which is what makes the verdict
          * oracle practical and is why the verdict is no longer exposed.
          */
-        process_attest_end(shared);
+        { uint64_t a = attest_now_insn(); process_attest_end(shared); attest_add_svc_insn(attest_now_insn() - a);
+            uart_puts("[COST] cmd "); uart_put_dec(attest_svc_insn());
+            uart_puts(" reads "); uart_put_dec(attest_cost_insn());
+            uart_puts(" class "); uart_put_dec(attest_class_insn());
+            uart_puts(" work "); uart_put_dec(attest_work_insn());
+            uart_puts(" windows "); uart_put_dec(attest_window_count());
+            uart_puts("\n"); }
         break;
 
     case SHARED_CMD_QUOTE:
