@@ -37,7 +37,7 @@ def boot(image_path):
     cmd = [
         QEMU, "-machine", "virt", "-cpu", "rv64", "-m", "128M",
         "-nographic", "-bios", "stage1.elf",
-        "-device", "loader,file=%s,addr=0x80200000" % image_path,
+        "-device", "loader,file=%s,addr=0x84000000" % image_path,
         "-smp", "1",
     ]
     try:
