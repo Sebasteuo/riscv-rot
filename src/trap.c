@@ -461,9 +461,11 @@ static void process_nv_increment(volatile uint32_t *shared)
 /* -------------------------------------------------------------------------
  * compute_pcr_policy - hash all PCR values into a single 32-byte digest
  *
- * Concatenates PCR0 + PCR1 + PCR2 (96 bytes total) and hashes
- * them with SHA-256 to produce a 32-byte policy value.
- * This is the "snapshot" of the platform state at a given moment.
+ * Concatenates every PCR (128 bytes total) and hashes them with SHA-256 to
+ * produce a 32-byte policy value. This is the "snapshot" of the platform
+ * state at a given moment. PCR 3 carries the runtime attestation result, so
+ * a deviation verdict changes the policy and a secret sealed before it can
+ * no longer be unsealed.
  * ------------------------------------------------------------------------- */
 static void compute_pcr_policy(uint8_t policy[SHA256_DIGEST_SIZE])
 {
@@ -1021,8 +1023,14 @@ static void process_attest_end(volatile uint32_t *shared)
      * area. Handing it to the measured code gives that code an exact
      * pass or fail oracle for its own profile, and with the six deltas
      * also visible the acceptance band falls in about ten queries. The
-     * remote verifier recomputes the verdict from the deltas, so
-     * nothing is lost by keeping it off the wire.
+     * remote verifier recomputes the verdict from the deltas, so the report
+     * loses nothing by keeping it off the wire.
+     *
+     * Keeping it off the wire makes the oracle expensive rather than
+     * impossible. A deviation verdict extends the runtime PCR, which
+     * changes the seal policy, so the measured code can still learn the
+     * verdict by asking for an unseal and seeing it refused. That probe
+     * costs a reboot and a full verified boot, instead of one query.
      */
     {
         uint64_t ct0 = timer_now();
@@ -1032,6 +1040,13 @@ static void process_attest_end(volatile uint32_t *shared)
         uart_puts("[ATT] Verdict: ");
         uart_puts(profile_verdict_name(v));
         uart_puts("\n");
+
+        if (v == PROFILE_DEVIATION_STORE ||
+            v == PROFILE_DEVIATION_BRANCH ||
+            v == PROFILE_DEVIATION_JUMP) {
+            pcr_extend(PCR_RUNTIME_IDX, pcr_deviation_mark);
+            uart_puts("[ATT] Runtime PCR extended, sealed data is now locked\n");
+        }
     }
 
     uart_puts("[ATT] Window closed: ");

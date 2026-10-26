@@ -32,6 +32,68 @@
 extern void uart_puts(const char *s);
 extern void uart_put_hex(uint64_t val);
 
+/* -------------------------------------------------------------------------
+ * Runtime attestation bound to the seal policy
+ *
+ * A secret is sealed while the runtime PCR still holds its boot value. The
+ * seal policy covers every PCR, so a window that closes with a deviation
+ * verdict extends the runtime PCR, moves the policy, and leaves the secret
+ * locked until the next boot. Nothing outside machine mode can put the PCR
+ * back, because the bank only takes extensions.
+ * ------------------------------------------------------------------------- */
+static const uint8_t sd_pass[16] = {
+    0x52, 0x6F, 0x6F, 0x74, 0x4F, 0x66, 0x54, 0x72,
+    0x75, 0x73, 0x74, 0x46, 0x57, 0x21, 0x21, 0x00
+};
+
+static const uint8_t sd_secret[16] = {
+    0x52, 0x75, 0x6E, 0x74, 0x69, 0x6D, 0x65, 0x53,
+    0x65, 0x61, 0x6C, 0x65, 0x64, 0x21, 0x00, 0x00
+};
+
+static void seal_demo_arm(void)
+{
+    TPM2_RC rc;
+
+    rc = TPM2_Startup(sd_pass, 16);
+    uart_puts("\n[SEALDEMO] Startup rc = ");
+    uart_put_hex(rc);
+    uart_puts("\n");
+    if (rc != TPM2_RC_SUCCESS) {
+        return;
+    }
+
+    rc = TPM2_Seal(sd_secret, 16);
+    uart_puts("[SEALDEMO] Seal rc = ");
+    uart_put_hex(rc);
+    uart_puts("\n");
+}
+
+static void seal_demo_check(const char *stage)
+{
+    uint8_t out[16];
+    TPM2_RC rc;
+    uint32_t k;
+
+    for (k = 0; k < 16; k++) {
+        out[k] = 0;
+    }
+
+    rc = TPM2_Unseal(out, 16);
+
+    uart_puts("[SEALDEMO] Unseal ");
+    uart_puts(stage);
+    uart_puts(" rc = ");
+    uart_put_hex(rc);
+    if (rc == TPM2_RC_SUCCESS) {
+        uart_puts(" secret released\n");
+    } else if (rc == TPM2_RC_PCR_MISMATCH) {
+        uart_puts(" refused, the policy no longer holds\n");
+    } else {
+        uart_puts(" refused\n");
+    }
+}
+
 /* ACT-14: high-level TPM 2.0 client demo, defined at the end of this file */
 static void tpm2_api_demo(void);
 
@@ -1159,8 +1221,11 @@ void user_entry(void)
      * was meant to avoid.
      */
     /* client_nominal_session(); */
+    seal_demo_arm();
     client_bench_varied();
+    seal_demo_check("after the nominal windows");
     attack_session();
+    seal_demo_check("after the adversarial windows");
 
     tpm2_api_demo();
 }

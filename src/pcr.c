@@ -26,6 +26,9 @@
 /* the PCR bank: 3 registers of 32 bytes each */
 static uint8_t pcr_bank[PCR_COUNT][SHA256_DIGEST_SIZE] __secret;
 
+/* Fixed marker extended into the runtime PCR on a deviation verdict. */
+const uint8_t pcr_deviation_mark[SHA256_DIGEST_SIZE] = "RISCV-ROT-DEVIATION-MARK-v1";
+
 /* -------------------------------------------------------------------------
  * pcr_init - reset all PCRs to zero
  *

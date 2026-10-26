@@ -26,7 +26,24 @@
 #include <stdint.h>
 #include "sha256.h"
 
-#define PCR_COUNT  3
+/*
+ * PCR 0 to 2 hold boot time measurements.
+ *
+ * PCR 3 holds the runtime attestation result. It starts at zero and is
+ * extended only when a window closes with a deviation verdict, so a secret
+ * sealed against the policy means "booted correctly and no deviation seen
+ * since then".
+ */
+#define PCR_COUNT        4
+#define PCR_RUNTIME_IDX  3
+
+/*
+ * The value extended into PCR_RUNTIME_IDX when a window closes with a
+ * deviation verdict. A fixed constant rather than the counter values, so a
+ * verifier can work out the expected PCR after n deviations without needing
+ * an event log from the device.
+ */
+extern const uint8_t pcr_deviation_mark[SHA256_DIGEST_SIZE];
 
 /* initialize all PCRs to zero (called once at boot) */
 void pcr_init(void);
