@@ -1,0 +1,31 @@
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== mcountinhibit on the U74 ===
+
+Unhandled exception: Illegal instruction
+EPC: 00000000800002c0 RA: 00000000800002c0 TVAL: 00000000320027f3
+
+Code: f822 0080 0517 0000 0513 14c5 f0ef dd9f (27f3 3200)
+
+
+resetting ...
+reset not supported yet
+### ERROR ### Please RESET the board ###
+11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== mcountinhibit on the U74 ===
+
+Unhandled exception: Illegal instruction
+EPC: 00000000800002c0 RA: 00000000800002c0 TVAL: 00000000320027f3
+
+Code: f822 0080 0517 0000 0513 14c5 f0ef dd9f (27f3 3200)
+
+
+resettiboard ###
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb ng ...
+reset not supported yet
+### ERROR ### Please RESET the 
