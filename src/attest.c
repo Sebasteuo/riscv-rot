@@ -36,9 +36,10 @@ static uint32_t point_mask;
 /*
  * Overhead accounting.
  *
- * cost_insn accumulates the instructions retired inside the attestation path, which
- * counter reads on open and the reads on close. The classification is
- * accumulated separately, because it runs after the window closes.
+ * cost_insn accumulates the instructions retired inside the attestation
+ * path. That path is the counter reads on open and the reads on close.
+ * The classification is accumulated separately, because it runs after
+ * the window closes.
  *
  * work_insn accumulates the instructions retired between the two, which is the workload
  * being observed.
