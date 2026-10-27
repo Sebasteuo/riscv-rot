@@ -945,9 +945,11 @@ static void process_attest_begin(volatile uint32_t *shared)
      * eventual report fresh: a replayed report carries the wrong nonce.
      */
     /*
-     * The application identifier rides in the challenge, right after
-     * the nonce. The client does not get to say which application it
-     * is: a compromised one would name whichever profile it fits.
+     * The application identifier comes from the command block, which
+     * the observed system writes. The firmware does not check that it
+     * matches the application actually running, so a compromised client
+     * can name whichever profile fits its behaviour. Binding it to the
+     * verifier challenge, or deriving it from a measurement, is future work.
      */
     attest_window_open(data, ATTEST_NONCE_SIZE);
     attest_set_app(shared[SHARED_OFF_PCR_IDX / 4]);

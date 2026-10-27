@@ -31,3 +31,4 @@ docs/tfg/informes/
 compare/*.bin
 compare/*.elf
 compare/*.o
+__pycache__/
