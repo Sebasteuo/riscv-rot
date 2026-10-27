@@ -338,10 +338,10 @@ test: $(TARGET).elf
 		echo "  [FAIL] expected exactly 4 access faults, got $$isol"; pass=0; \
 	fi; \
 	illg=$$(grep -c "ILLEGAL INSTRUCTION" test_output.log); \
-	if [ "$$illg" -eq 2 ]; then \
-		echo "  [OK] 2 illegal instructions, from tests 33 and 36"; \
+	if [ "$$illg" -eq 3 ]; then \
+		echo "  [OK] 3 illegal instructions, from tests 33, 36 and 36b"; \
 	else \
-		echo "  [FAIL] expected exactly 2 illegal instructions, got $$illg"; pass=0; \
+		echo "  [FAIL] expected exactly 3 illegal instructions, got $$illg"; pass=0; \
 	fi; \
 	echo ""; \
 	if [ "$$pass" -eq 1 ]; then \

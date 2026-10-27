@@ -1162,6 +1162,25 @@ void user_entry(void)
         (void)v;
     }
 
+    /* ---- Test 36b: the counter alias U-mode would actually use ---- */
+    /*
+     * Test 36 reads 0xB05, a machine CSR that U-mode can never reach
+     * whatever mcounteren says. The alias U-mode would really use is
+     * hpmcounter5 at 0xC05, and that one is gated by mcounteren. The
+     * firmware leaves mcounteren unset, so this read must trap too.
+     * make test counts the illegal instructions, so if this one does
+     * not trap the count drops and the target fails.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[USER] Test 36b: Attempting to READ hpmcounter5 (0xC05) from U-mode...\n");
+    uart_puts("[USER] (the alias must be gated by mcounteren)\n");
+    {
+        uint64_t va = 0;
+        asm volatile("csrr %0, 0xC05" : "=r"(va));
+        uart_puts("[USER] Survived: the read trapped, the alias is gated too\n");
+        (void)va;
+    }
+
     /* ---- Test 34: U-mode cannot read the Secure Storage MMIO (EK/SRK) ---- */
     /*
      * SRS-F-009: the EK and SRK live in the Secure Storage device at
