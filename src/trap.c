@@ -1303,15 +1303,17 @@ static void process_shared_command(void)
 
         uart_puts("[QUOTE] Generating PCR attestation quote\n");
         {
-            uint8_t pcr_concat[96];  /* 3 PCRs x 32 bytes */
+            uint8_t pcr_concat[3 * 32];  /* the quote covers the 3 boot PCRs */
             uint8_t ek_key[32];
             uint32_t ek_size = 32;
             uint8_t signature[32];
             uint8_t *out = (uint8_t *)(SHARED_BASE + SHARED_OFF_DATA + 4);
             int qi;
 
-            /* read all 3 PCR values into a single buffer */
-            for (qi = 0; qi < PCR_COUNT; qi++) {
+            /* Read the 3 boot PCRs. The bound is 3 and not PCR_COUNT on
+             * purpose: PCR_COUNT also counts the runtime PCR, and reading
+             * it here wrote 32 bytes past pcr_concat and clobbered out. */
+            for (qi = 0; qi < 3; qi++) {
                 pcr_read(qi, &pcr_concat[qi * 32]);
             }
 
