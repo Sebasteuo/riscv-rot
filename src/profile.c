@@ -6,6 +6,11 @@
  * run of the workload, not from an estimate. See docs/tfg for the
  * measurement procedure.
  *
+ * HISTORICAL, kept for the record. The paragraph below describes the
+ * first design, which used one fixed tolerance for every workload. It
+ * was replaced by the per application tolerances further down, so the
+ * figures it quotes no longer match the current profiles.
+ *
  * Tolerance is set at 15 percent. That is wide enough to absorb the
  * effect of different input sizes on the same workload, and narrow
  * enough to catch the overflow scenario, which moves branch/load by
