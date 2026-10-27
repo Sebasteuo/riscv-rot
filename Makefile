@@ -332,10 +332,16 @@ test: $(TARGET).elf
 		echo "  [FAIL] $$tfail timing limit violation(s)"; pass=0; \
 	fi; \
 	isol=$$(grep -c "ACCESS FAULT" test_output.log); \
-	if [ "$$isol" -ge 3 ]; then \
-		echo "  [OK] PMP isolation faults present ($$isol access faults from U-mode isolation tests)"; \
+	if [ "$$isol" -eq 4 ]; then \
+		echo "  [OK] 4 access faults, the ones tests 1, 2, 32 and 34 raise on purpose"; \
 	else \
-		echo "  [FAIL] expected PMP isolation faults not observed ($$isol)"; pass=0; \
+		echo "  [FAIL] expected exactly 4 access faults, got $$isol"; pass=0; \
+	fi; \
+	illg=$$(grep -c "ILLEGAL INSTRUCTION" test_output.log); \
+	if [ "$$illg" -eq 2 ]; then \
+		echo "  [OK] 2 illegal instructions, from tests 33 and 36"; \
+	else \
+		echo "  [FAIL] expected exactly 2 illegal instructions, got $$illg"; pass=0; \
 	fi; \
 	echo ""; \
 	if [ "$$pass" -eq 1 ]; then \
