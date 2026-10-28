@@ -298,7 +298,13 @@ clean:
 # The firmware ends in an idle wfi loop and never exits on its own, so we
 # run it under a timeout and redirect to a log, then grep for the expected
 # results. Exit code 0 means all checks passed, non-zero means a failure.
+# Revision que produjo una medicion. Cada objetivo que mide la imprime,
+# de modo que una cifra guardada se pueda rastrear hasta el codigo que
+# la hizo. La estampa sale por consola y no entra al binario.
+REV = $(shell git rev-parse --short HEAD 2>/dev/null || echo unknown)$(shell git diff --quiet 2>/dev/null || echo +sucio)
+
 test: $(TARGET).elf
+	@echo "[REV] $(REV)"
 	@echo "=== Running firmware test suite ==="
 	@rm -f secure_storage.bin test_output.log
 	@timeout 20 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
@@ -506,6 +512,7 @@ check-profiles: $(TARGET).elf
 # instruction takes orders of magnitude longer.
 # ---------------------------------------------------------------------------
 test-chain: secureboot
+	@echo "[REV] $(REV)"
 	@echo "=== Running the secure boot chain ==="
 	@rm -f secure_storage.bin chain_output.log
 	@timeout 40 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
@@ -547,6 +554,7 @@ test-chain: secureboot
 # the control.
 # ---------------------------------------------------------------------------
 test-reject: secureboot
+	@echo "[REV] $(REV)"
 	@python3 tools/test_reject.py $(KEYPREFIX)
 
 .PHONY: test-reject
@@ -563,6 +571,7 @@ EXTRA_CFLAGS ?=
 CFLAGS += $(EXTRA_CFLAGS)
 
 measure-verdict:
+	@echo "[REV] $(REV)"
 	@touch src/profile.c src/main.c
 	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DCOST_REPORT $(TARGET).elf > /dev/null
 	@rm -f secure_storage.bin
@@ -574,6 +583,7 @@ measure-verdict:
 .PHONY: measure-verdict
 
 measure-service: $(TARGET).elf
+	@echo "[REV] $(REV)"
 	@rm -f secure_storage.bin
 	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/service.log 2>&1; true
 	@grep "COST. cmd" /tmp/service.log | tail -1 || echo "  no figure came back"
@@ -581,6 +591,7 @@ measure-service: $(TARGET).elf
 .PHONY: measure-service
 
 verify-reports: 
+	@echo "[REV] $(REV)"
 	@touch src/client_app.c
 	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DREPORT_DUMP $(TARGET).elf > /dev/null
 	@rm -f secure_storage.bin
