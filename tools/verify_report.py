@@ -15,6 +15,12 @@ code over the first 64 bytes and compares it with the one the device sent.
 It reads the reports from a run log, where the client prints each one on a
 line that starts with [REP].
 
+A run also carries lines that start with [FORGED]. Those are reports that
+user mode rewrote in the shared area before a verifier could read them, one
+with a counter delta changed and the code left alone, and one written whole
+from user mode. Every one of them has to be refused, so the script fails if
+any of them verifies.
+
 The key derivation is imported from verify_quote.py so both tools cannot
 drift apart.
 
@@ -22,8 +28,9 @@ Usage:
   python3 verify_report.py /tmp/service.log
   python3 verify_report.py --demo
 
-Exit code is 0 when every report verifies and 1 when any of them fails, so
-the script can be used from shell scripts and from the Makefile.
+Exit code is 0 when every genuine report verifies and every forged one is
+refused, and 1 otherwise, so the script can be used from shell scripts and
+from the Makefile.
 """
 
 import hashlib
@@ -36,7 +43,8 @@ REPORT_SIZE = 96
 NONCE_SIZE = 16
 FEATURES = 6
 SIGNED_SIZE = NONCE_SIZE + FEATURES * 8
-PREFIX = "[REP] "
+GENUINE_PREFIX = "[REP] "
+FORGED_PREFIX = "[FORGED] "
 
 FEATURE_NAMES = ["loads", "stores", "taken branches", "indirect jumps",
                  "traps", "mode changes"]
@@ -56,14 +64,20 @@ def deltas(report):
     return out
 
 
-def read_reports(path):
-    """Every [REP] line of a run log, as raw bytes."""
+def verifies(ek, report):
+    """True when the report carries the code the key produces."""
+    return hmac.compare_digest(report_code(ek, report),
+                               report[SIGNED_SIZE:])
+
+
+def read_reports(path, prefix):
+    """Every line of a run log under this prefix, as raw bytes."""
     found = []
     with open(path, "r", errors="replace") as handle:
         for number, line in enumerate(handle, 1):
-            if not line.startswith(PREFIX):
+            if not line.startswith(prefix):
                 continue
-            text = line[len(PREFIX):].strip()
+            text = line[len(prefix):].strip()
             if len(text) != REPORT_SIZE * 2:
                 print("line %d: expected %d hex characters, got %d"
                       % (number, REPORT_SIZE * 2, len(text)))
@@ -72,15 +86,26 @@ def read_reports(path):
     return found
 
 
-def check(reports, ek):
-    """Verify every report. Returns how many failed."""
+def check_genuine(reports, ek):
+    """Every genuine report has to verify. Returns how many did not."""
     bad = 0
     for number, report in reports:
-        expected = report_code(ek, report)
-        if hmac.compare_digest(expected, report[SIGNED_SIZE:]):
+        if verifies(ek, report):
             continue
         bad += 1
-        print("line %d: the authentication code does not match" % number)
+        print("line %d: a genuine report did not verify" % number)
+    return bad
+
+
+def check_forged(reports, ek):
+    """Every forged report has to be refused. Returns how many passed."""
+    bad = 0
+    for number, report in reports:
+        if not verifies(ek, report):
+            continue
+        bad += 1
+        print("line %d: a forged report verified, so the check is not "
+              "working" % number)
     return bad
 
 
@@ -94,15 +119,13 @@ def demo(ek):
         report[start:start + 8] = value.to_bytes(8, "big")
     report[SIGNED_SIZE:] = report_code(ek, bytes(report))
 
-    if not hmac.compare_digest(report_code(ek, bytes(report)),
-                               bytes(report[SIGNED_SIZE:])):
+    if not verifies(ek, bytes(report)):
         print("the genuine report failed, so the derivation is wrong")
         return 1
 
     tampered = bytearray(report)
     tampered[NONCE_SIZE] ^= 0x01
-    if hmac.compare_digest(report_code(ek, bytes(tampered)),
-                           bytes(tampered[SIGNED_SIZE:])):
+    if verifies(ek, bytes(tampered)):
         print("the tampered report passed, so the check is not working")
         return 1
 
@@ -121,21 +144,30 @@ def main():
         print(__doc__)
         return 1
 
-    reports = read_reports(sys.argv[1])
-    if not reports:
+    genuine = read_reports(sys.argv[1], GENUINE_PREFIX)
+    forged = read_reports(sys.argv[1], FORGED_PREFIX)
+
+    if not genuine:
         print("no report found in %s" % sys.argv[1])
         return 1
 
-    bad = check(reports, ek)
+    bad = check_genuine(genuine, ek)
     print("%d reports read, %d verified, %d failed"
-          % (len(reports), len(reports) - bad, bad))
+          % (len(genuine), len(genuine) - bad, bad))
 
-    first = reports[0][1]
+    passed = check_forged(forged, ek)
+    if forged:
+        print("%d forged reports read, %d refused, %d accepted"
+              % (len(forged), len(forged) - passed, passed))
+    else:
+        print("no forged report in the log, so that check did not run")
+
+    first = genuine[0][1]
     print("first report, nonce %s" % first[:NONCE_SIZE].hex())
     for name, value in zip(FEATURE_NAMES, deltas(first)):
         print("  %-16s %d" % (name, value))
 
-    return 1 if bad else 0
+    return 1 if (bad or passed) else 0
 
 
 if __name__ == "__main__":

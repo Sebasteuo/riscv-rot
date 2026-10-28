@@ -57,6 +57,7 @@ static void window_close(void)
      */
     {
         static const char hex[] = "0123456789abcdef";
+        static int forged_done;
         int i;
 
         uart_puts("[REP] ");
@@ -65,6 +66,44 @@ static void window_close(void)
             uart_putc(hex[shared_data[i] & 0xF]);
         }
         uart_puts("\n");
+
+        /*
+         * Once per run, show what user mode can do to the report while it
+         * sits in the shared area. The first forgery keeps the code the
+         * firmware produced and changes one counter delta, which is what
+         * an attacker reporting nominal behaviour would try. The second
+         * one writes a whole report of its own. The verifier has to refuse
+         * both, and that is what backs the claim that the code stops a
+         * report made up in the shared area.
+         */
+        if (!forged_done) {
+            uint8_t saved[96];
+
+            forged_done = 1;
+
+            for (i = 0; i < 96; i++)
+                saved[i] = shared_data[i];
+
+            shared_data[23] ^= 0x01;
+            uart_puts("[FORGED] ");
+            for (i = 0; i < 96; i++) {
+                uart_putc(hex[(shared_data[i] >> 4) & 0xF]);
+                uart_putc(hex[shared_data[i] & 0xF]);
+            }
+            uart_puts("\n");
+
+            for (i = 0; i < 96; i++)
+                shared_data[i] = (uint8_t)(i * 7 + 1);
+            uart_puts("[FORGED] ");
+            for (i = 0; i < 96; i++) {
+                uart_putc(hex[(shared_data[i] >> 4) & 0xF]);
+                uart_putc(hex[shared_data[i] & 0xF]);
+            }
+            uart_puts("\n");
+
+            for (i = 0; i < 96; i++)
+                shared_data[i] = saved[i];
+        }
     }
 #endif
 }
