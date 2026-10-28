@@ -48,6 +48,25 @@ static void window_close(void)
     shared[SHARED_OFF_CMD / 4] = SHARED_CMD_ATTEST_END;
     shared[SHARED_OFF_SIZE / 4] = 0;
     asm volatile("ecall");
+
+#ifdef REPORT_DUMP
+    /*
+     * Print the whole 96 byte report so a verifier outside the device
+     * can check its authentication code. The window is already closed
+     * when this runs, so these writes stay outside the measurement.
+     */
+    {
+        static const char hex[] = "0123456789abcdef";
+        int i;
+
+        uart_puts("[REP] ");
+        for (i = 0; i < 96; i++) {
+            uart_putc(hex[(shared_data[i] >> 4) & 0xF]);
+            uart_putc(hex[shared_data[i] & 0xF]);
+        }
+        uart_puts("\n");
+    }
+#endif
 }
 
 /* ---- WALK: sequential traversal, loads dominate ---- */

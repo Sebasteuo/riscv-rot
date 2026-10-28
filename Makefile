@@ -573,9 +573,20 @@ measure-verdict:
 
 .PHONY: measure-verdict
 
-measure-service:
+measure-service: $(TARGET).elf
 	@rm -f secure_storage.bin
 	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/service.log 2>&1; true
 	@grep "COST. cmd" /tmp/service.log | tail -1 || echo "  no figure came back"
 
 .PHONY: measure-service
+
+verify-reports: 
+	@touch src/client_app.c
+	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DREPORT_DUMP $(TARGET).elf > /dev/null
+	@rm -f secure_storage.bin
+	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/reports.log 2>&1; true
+	@cd tools && python3 verify_report.py /tmp/reports.log
+	@touch src/client_app.c
+	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
+
+.PHONY: verify-reports
