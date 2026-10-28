@@ -403,3 +403,61 @@ void attack_session(void)
 
     uart_puts("[ATK] === done ===\n");
 }
+
+#ifdef EVADE_PROBE
+/* -------------------------------------------------------------------------
+ * attack_evade - the adversary opens the window where the attack is not
+ *
+ * The observed code supplies the opening value and decides when to close,
+ * so it can attack first and open the window afterwards. The detector then
+ * measures a stretch that holds no attack at all.
+ *
+ * The scenario used here is the one that reduces the work and omits a
+ * call. It is chosen because it does not take control of any jump, so it
+ * does not close a window of its own. That keeps the experiment to a
+ * single variable, which is where the window sits.
+ * ------------------------------------------------------------------------- */
+void attack_evade(void)
+{
+    diverted = 0;
+
+    asm volatile("mv %0, sp" : "=r"(recover_sp));
+    asm volatile("mv %0, ra" : "=r"(recover_ra));
+
+    bench_set_app(0);
+
+    uart_puts("[EVADE] the attack runs with no window open\n");
+    run_small();
+    uart_puts("[EVADE]   diverted: ");
+    uart_puts(diverted ? "YES" : "no");
+    uart_puts("\n");
+
+    /*
+     * The window goes through the path the baseline uses, so the only
+     * difference from the baseline run is that the attack already
+     * happened outside it. Calling run_none straight from here moved the
+     * indirect jump count, because the profile was fitted with that
+     * routine called from attack_run, and the window was refused for a
+     * reason that had nothing to do with the attack.
+     */
+    uart_puts("[EVADE] the baseline window follows\n");
+    attack_run(ATTACK_NONE);
+    uart_puts("[EVADE] the window is closed\n");
+}
+
+/* -------------------------------------------------------------------------
+ * attack_evade_control - the same attack, this time inside a window
+ *
+ * The pair then differs in one thing only, which is where the window sits.
+ * Without this the nominal verdict above says nothing, because an attack
+ * that no window ever catches would read the same way.
+ *
+ * It runs after the unseal, so that whatever it extends cannot reach the
+ * first half of the experiment.
+ * ------------------------------------------------------------------------- */
+void attack_evade_control(void)
+{
+    uart_puts("[EVADE] control: the same attack inside a window\n");
+    attack_run(ATTACK_SMALL);
+}
+#endif

@@ -601,3 +601,22 @@ verify-reports:
 	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
 
 .PHONY: verify-reports
+
+# ---------------------------------------------------------------------------
+# Window placement
+#
+# The observed code decides where the window opens, so it can attack first
+# and measure afterwards. This target runs that case. It lives behind a
+# define so the default binary and the 40 window sweep stay untouched.
+# ---------------------------------------------------------------------------
+measure-evade:
+	@echo "[REV] $(REV)"
+	@touch src/attack.c src/user.c
+	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DEVADE_PROBE $(TARGET).elf > /dev/null
+	@rm -f secure_storage.bin
+	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/evade.log 2>&1; true
+	@grep -E "EVADE|erdict|VERDICT|DEVIATION|NOMINAL" /tmp/evade.log || echo "  nada salio"
+	@touch src/attack.c src/user.c
+	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
+
+.PHONY: measure-evade

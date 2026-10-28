@@ -1243,6 +1243,94 @@ void user_entry(void)
     seal_demo_arm();
     client_bench_varied();
     seal_demo_check("after the nominal windows");
+#ifdef EVADE_PROBE
+    /*
+     * The window is placed where the attack is not.
+     *
+     * The seal happens here and not earlier because test 22 extends a
+     * boot register on purpose, which locks the sealed value by policy.
+     * Sealing after every test, and before the sweep, leaves the runtime
+     * register at zero, so a refused unseal can only come from a
+     * deviation verdict.
+     */
+    uart_puts("\n[USER] ================================\n");
+    uart_puts("[EVADE] seal, attack outside the window, then measure\n");
+    {
+        extern void attack_evade(void);
+        const uint8_t secret_msg[16] = {
+            0x53, 0x65, 0x63, 0x72, 0x65, 0x74, 0x44, 0x61,
+            0x74, 0x61, 0x21, 0x21, 0x21, 0x21, 0x00, 0x00
+        };
+        uint8_t recovered[16];
+        uint32_t i;
+        int match;
+
+        status = send_start_session();
+        uart_puts("[EVADE] session status: ");
+        uart_put_hex(status);
+        uart_puts("\n");
+
+        status = send_seal(secret_msg, 16);
+        uart_puts("[EVADE] seal status: ");
+        uart_put_hex(status);
+        uart_puts("\n");
+
+        attack_evade();
+
+        status = send_unseal(recovered, 16);
+        uart_puts("[EVADE] unseal status: ");
+        uart_put_hex(status);
+        if (status == SHARED_STATUS_OK) {
+            match = 1;
+            for (i = 0; i < 16; i++) {
+                if (recovered[i] != secret_msg[i]) { match = 0; break; }
+            }
+            uart_puts(match
+                ? " the secret came back after the attack\n"
+                : " the unseal returned the wrong bytes\n");
+        } else {
+            uart_puts(" the secret stayed locked\n");
+        }
+        uart_puts("\n");
+
+        /*
+         * Second half. The same attack, this time inside the window, with a
+         * fresh seal before it so the seal happens over a clean state and
+         * the unseal happens after the verdict.
+         */
+        status = send_start_session();
+        uart_puts("[EVADE] inside: session status: ");
+        uart_put_hex(status);
+        uart_puts("\n");
+
+        status = send_seal(secret_msg, 16);
+        uart_puts("[EVADE] inside: seal status: ");
+        uart_put_hex(status);
+        uart_puts("\n");
+
+        {
+            extern void attack_evade_control(void);
+            attack_evade_control();
+        }
+
+        status = send_unseal(recovered, 16);
+        uart_puts("[EVADE] inside: unseal status: ");
+        uart_put_hex(status);
+        if (status == SHARED_STATUS_OK) {
+            match = 1;
+            for (i = 0; i < 16; i++) {
+                if (recovered[i] != secret_msg[i]) { match = 0; break; }
+            }
+            uart_puts(match
+                ? " the secret came back even so\n"
+                : " the unseal returned the wrong bytes\n");
+        } else {
+            uart_puts(" the secret stayed locked\n");
+        }
+        uart_puts("\n");
+    }
+#endif
+
     attack_session();
     seal_demo_check("after the adversarial windows");
 
