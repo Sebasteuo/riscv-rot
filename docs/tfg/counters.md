@@ -189,9 +189,7 @@ runs one extra division loop per additional digit, costing a fixed 22
 loads, 18 stores, 2 indirect jumps and 4 taken branches. Runs that print
 the same digit total produce identical counts.
 
-For comparison, Das et al. report that models depending on deltas of one
-to five percent collapse under measurement error. These figures sit two
-orders of magnitude below that floor, and the residual variation is
+For comparison, Das et al. note that a variation of one to five percent in counter values can degrade the performance of security models, a figure they take from earlier work. These figures sit two orders of magnitude below that range, and the residual variation is
 attributable to executed work rather than to counting error.
 
 ---
