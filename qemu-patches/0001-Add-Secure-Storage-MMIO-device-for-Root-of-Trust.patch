@@ -1,0 +1,367 @@
+From 317d6fae595d1ba6fb9be1fcd3fa55597c9b3c6f Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Wed, 1 Apr 2026 12:04:55 -0600
+Subject: [PATCH] Add Secure Storage MMIO device for Root of Trust
+
+Custom QEMU device at 0x10200000 that provides 8 slots of 64 bytes
+each for the RoT firmware to store crypto keys and other secrets.
+
+Register-based interface: CMD, STATUS, SLOT_ID, OFFSET, SIZE, DATA.
+Supports WRITE, READ, ERASE, and STATUS commands. Data is transferred
+4 bytes at a time through the DATA register.
+
+Integrated into the RISC-V virt machine memmap so the firmware can
+access it like any other MMIO peripheral.
+---
+ hw/misc/meson.build      |   3 +
+ hw/misc/secure_storage.c | 291 +++++++++++++++++++++++++++++++++++++++
+ hw/riscv/virt.c          |   4 +
+ include/hw/riscv/virt.h  |   1 +
+ 4 files changed, 299 insertions(+)
+ create mode 100644 hw/misc/secure_storage.c
+
+diff --git a/hw/misc/meson.build b/hw/misc/meson.build
+index 96b6705b7d..c3c3fa368b 100644
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -166,3 +166,6 @@ system_ss.add(when: 'CONFIG_SBSA_REF', if_true: files('sbsa_ec.c'))
+ 
+ # HPPA devices
+ system_ss.add(when: 'CONFIG_LASI', if_true: files('lasi.c'))
++
++# Secure Storage MMIO device for Root of Trust
++system_ss.add(when: 'CONFIG_RISCV_VIRT', if_true: files('secure_storage.c'))
+diff --git a/hw/misc/secure_storage.c b/hw/misc/secure_storage.c
+new file mode 100644
+index 0000000000..e3fdf6ac7c
+--- /dev/null
++++ b/hw/misc/secure_storage.c
+@@ -0,0 +1,291 @@
++/*
++ * RISC-V Secure Storage MMIO device
++ *
++ * A simple memory-mapped storage device for the Root of Trust firmware.
++ * It works like a bank of registers that the firmware can read and write.
++ * The data can optionally be backed by a file on disk so it survives
++ * QEMU restarts, simulating non-volatile storage like a flash chip.
++ *
++ * Register layout (all 32-bit):
++ *   0x00  CMD       write a command here to execute it
++ *   0x04  STATUS    read status/result of last command
++ *   0x08  SLOT_ID   which slot to operate on (0-7)
++ *   0x0C  OFFSET    byte offset within the slot
++ *   0x10  SIZE      number of bytes for the operation
++ *   0x14  DATA      read/write data one 32-bit word at a time
++ *
++ * Commands (written to CMD register):
++ *   0x01  WRITE     write SIZE bytes starting at OFFSET in SLOT_ID
++ *                   (data fed through DATA register, 4 bytes at a time)
++ *   0x02  READ      read SIZE bytes starting at OFFSET from SLOT_ID
++ *                   (data read from DATA register, 4 bytes at a time)
++ *   0x03  ERASE     wipe SLOT_ID clean
++ *   0x04  STATUS    check if SLOT_ID has data (result in STATUS)
++ *
++ * Status codes (read from STATUS register):
++ *   0x00  OK
++ *   0x01  ERROR (invalid slot, bad offset, etc)
++ *   0x02  SLOT_EMPTY
++ *   0x03  SLOT_HAS_DATA
++ *
++ * This is intentionally simple. The firmware abstraction layer handles
++ * all the logic for managing keys and data larger than 32 bits.
++ *
++ * Author: Sebastian Alba
++ * Project: Root of Trust Firmware for RISC-V with PMP isolation
++ */
++
++#include "qemu/osdep.h"
++#include "hw/core/sysbus.h"
++#include "qemu/log.h"
++#include "qemu/module.h"
++#include "qapi/error.h"
++
++#define TYPE_SECURE_STORAGE "secure-storage"
++#define SECURE_STORAGE(obj) \
++    OBJECT_CHECK(SecureStorageState, (obj), TYPE_SECURE_STORAGE)
++
++/* register offsets */
++#define REG_CMD      0x00
++#define REG_STATUS   0x04
++#define REG_SLOT_ID  0x08
++#define REG_OFFSET   0x0C
++#define REG_SIZE     0x10
++#define REG_DATA     0x14
++
++/* commands */
++#define CMD_WRITE    0x01
++#define CMD_READ     0x02
++#define CMD_ERASE    0x03
++#define CMD_CHECK    0x04
++
++/* status codes */
++#define STATUS_OK         0x00
++#define STATUS_ERROR      0x01
++#define STATUS_EMPTY      0x02
++#define STATUS_HAS_DATA   0x03
++
++/* storage dimensions */
++#define NUM_SLOTS    8
++#define SLOT_SIZE    64  /* bytes per slot */
++
++typedef struct {
++    SysBusDevice parent_obj;
++    MemoryRegion iomem;
++
++    /* control registers */
++    uint32_t cmd;
++    uint32_t status;
++    uint32_t slot_id;
++    uint32_t offset;
++    uint32_t size;
++
++    /* internal cursor for multi-word read/write through DATA register */
++    uint32_t data_cursor;
++
++    /* the actual storage: 8 slots of 64 bytes each */
++    uint8_t slots[NUM_SLOTS][SLOT_SIZE];
++    uint8_t slot_used[NUM_SLOTS];  /* 1 if slot has data, 0 if empty */
++    uint32_t slot_sizes[NUM_SLOTS]; /* how many bytes are valid in each slot */
++} SecureStorageState;
++
++/*
++ * Handle writes from the firmware to our registers.
++ * Most registers just store the value. Writing to CMD triggers
++ * the actual operation.
++ */
++static void ss_write(void *opaque, hwaddr offset, uint64_t value, unsigned sz)
++{
++    SecureStorageState *s = SECURE_STORAGE(opaque);
++
++    switch (offset) {
++    case REG_CMD:
++        s->cmd = (uint32_t)value;
++        /* execute the command */
++        switch (s->cmd) {
++        case CMD_WRITE:
++            /* firmware will feed data through DATA register */
++            if (s->slot_id < NUM_SLOTS && s->offset < SLOT_SIZE) {
++                s->data_cursor = s->offset;
++                s->status = STATUS_OK;
++            } else {
++                s->status = STATUS_ERROR;
++            }
++            break;
++
++        case CMD_READ:
++            /* firmware will read data from DATA register */
++            if (s->slot_id < NUM_SLOTS && s->slot_used[s->slot_id]) {
++                s->data_cursor = s->offset;
++                s->status = STATUS_OK;
++            } else {
++                s->status = s->slot_id < NUM_SLOTS ? STATUS_EMPTY : STATUS_ERROR;
++            }
++            break;
++
++        case CMD_ERASE:
++            if (s->slot_id < NUM_SLOTS) {
++                memset(s->slots[s->slot_id], 0, SLOT_SIZE);
++                s->slot_used[s->slot_id] = 0;
++                s->slot_sizes[s->slot_id] = 0;
++                s->status = STATUS_OK;
++            } else {
++                s->status = STATUS_ERROR;
++            }
++            break;
++
++        case CMD_CHECK:
++            if (s->slot_id < NUM_SLOTS) {
++                s->status = s->slot_used[s->slot_id] ?
++                    STATUS_HAS_DATA : STATUS_EMPTY;
++            } else {
++                s->status = STATUS_ERROR;
++            }
++            break;
++
++        default:
++            s->status = STATUS_ERROR;
++            break;
++        }
++        break;
++
++    case REG_STATUS:
++        /* status is read-only, ignore writes */
++        break;
++
++    case REG_SLOT_ID:
++        s->slot_id = (uint32_t)value;
++        break;
++
++    case REG_OFFSET:
++        s->offset = (uint32_t)value;
++        break;
++
++    case REG_SIZE:
++        s->size = (uint32_t)value;
++        break;
++
++    case REG_DATA:
++        /*
++         * Writing to the DATA register pushes bytes into the current slot.
++         * We write up to 4 bytes at a time (one 32-bit word).
++         * The firmware writes multiple times to fill the slot.
++         */
++        if (s->slot_id < NUM_SLOTS && s->cmd == CMD_WRITE) {
++            int i;
++            for (i = 0; i < 4 && s->data_cursor < SLOT_SIZE; i++) {
++                s->slots[s->slot_id][s->data_cursor] =
++                    (uint8_t)(value >> (i * 8));
++                s->data_cursor++;
++            }
++            s->slot_used[s->slot_id] = 1;
++            if (s->data_cursor > s->slot_sizes[s->slot_id]) {
++                s->slot_sizes[s->slot_id] = s->data_cursor;
++            }
++        }
++        break;
++
++    default:
++        qemu_log_mask(LOG_UNIMP,
++            "secure-storage: write to unknown register 0x%02x\n",
++            (unsigned)offset);
++        break;
++    }
++}
++
++/*
++ * Handle reads from the firmware.
++ * DATA register returns bytes from the current slot 4 at a time.
++ */
++static uint64_t ss_read(void *opaque, hwaddr offset, unsigned sz)
++{
++    SecureStorageState *s = SECURE_STORAGE(opaque);
++
++    switch (offset) {
++    case REG_CMD:
++        return s->cmd;
++
++    case REG_STATUS:
++        return s->status;
++
++    case REG_SLOT_ID:
++        return s->slot_id;
++
++    case REG_OFFSET:
++        return s->offset;
++
++    case REG_SIZE:
++        if (s->slot_id < NUM_SLOTS) {
++            return s->slot_sizes[s->slot_id];
++        }
++        return 0;
++
++    case REG_DATA:
++        /*
++         * Reading from DATA pulls bytes from the slot, 4 at a time.
++         * The cursor advances automatically.
++         */
++        if (s->slot_id < NUM_SLOTS && s->cmd == CMD_READ) {
++            uint32_t val = 0;
++            int i;
++            for (i = 0; i < 4 && s->data_cursor < SLOT_SIZE; i++) {
++                val |= (uint32_t)s->slots[s->slot_id][s->data_cursor]
++                        << (i * 8);
++                s->data_cursor++;
++            }
++            return val;
++        }
++        return 0;
++
++    default:
++        qemu_log_mask(LOG_UNIMP,
++            "secure-storage: read from unknown register 0x%02x\n",
++            (unsigned)offset);
++        return 0;
++    }
++}
++
++static const MemoryRegionOps ss_ops = {
++    .read = ss_read,
++    .write = ss_write,
++    .impl.min_access_size = 4,
++    .impl.max_access_size = 4,
++    .valid.min_access_size = 4,
++    .valid.max_access_size = 4,
++    .endianness = DEVICE_LITTLE_ENDIAN,
++};
++
++static void ss_realize(DeviceState *dev, Error **errp)
++{
++    SecureStorageState *s = SECURE_STORAGE(dev);
++
++    /* initialize all slots to empty */
++    memset(s->slots, 0, sizeof(s->slots));
++    memset(s->slot_used, 0, sizeof(s->slot_used));
++    memset(s->slot_sizes, 0, sizeof(s->slot_sizes));
++
++    /* register our MMIO region, 0x100 bytes is plenty for our registers */
++    memory_region_init_io(&s->iomem, OBJECT(s), &ss_ops, s,
++                          "secure-storage", 0x100);
++    sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->iomem);
++}
++
++static void ss_class_init(ObjectClass *klass, const void *data)
++{
++    DeviceClass *dc = DEVICE_CLASS(klass);
++    dc->realize = ss_realize;
++}
++
++static const TypeInfo ss_info = {
++    .name = TYPE_SECURE_STORAGE,
++    .parent = TYPE_SYS_BUS_DEVICE,
++    .instance_size = sizeof(SecureStorageState),
++    .class_init = ss_class_init,
++};
++
++static void ss_register_types(void)
++{
++    type_register_static(&ss_info);
++}
++
++type_init(ss_register_types)
+diff --git a/hw/riscv/virt.c b/hw/riscv/virt.c
+index bbce2fb667..d650cec34b 100644
+--- a/hw/riscv/virt.c
++++ b/hw/riscv/virt.c
+@@ -95,6 +95,7 @@ static const MemMapEntry virt_memmap[] = {
+     [VIRT_UART0] =        { 0x10000000,         0x100 },
+     [VIRT_VIRTIO] =       { 0x10001000,        0x1000 },
+     [VIRT_FW_CFG] =       { 0x10100000,          0x18 },
++    [VIRT_SECURE_STORAGE] = { 0x10200000,        0x1000 },
+     [VIRT_FLASH] =        { 0x20000000,     0x4000000 },
+     [VIRT_IMSIC_M] =      { 0x24000000, VIRT_IMSIC_MAX_SIZE },
+     [VIRT_IMSIC_S] =      { 0x28000000, VIRT_IMSIC_MAX_SIZE },
+@@ -1709,6 +1710,9 @@ static void virt_machine_init(MachineState *machine)
+     sysbus_create_simple("goldfish_rtc", s->memmap[VIRT_RTC].base,
+         qdev_get_gpio_in(mmio_irqchip, RTC_IRQ));
+ 
++    /* Secure Storage MMIO device for Root of Trust */
++    sysbus_create_simple("secure-storage", s->memmap[VIRT_SECURE_STORAGE].base, NULL);
++
+     for (i = 0; i < ARRAY_SIZE(s->flash); i++) {
+         /* Map legacy -drive if=pflash to machine properties */
+         pflash_cfi01_legacy_drive(s->flash[i],
+diff --git a/include/hw/riscv/virt.h b/include/hw/riscv/virt.h
+index 18a2a323a3..2bb525d858 100644
+--- a/include/hw/riscv/virt.h
++++ b/include/hw/riscv/virt.h
+@@ -88,6 +88,7 @@ enum {
+     VIRT_PLATFORM_BUS,
+     VIRT_PCIE_ECAM,
+     VIRT_IOMMU_SYS,
++    VIRT_SECURE_STORAGE,
+ };
+ 
+ enum {
+-- 
+2.43.0
+

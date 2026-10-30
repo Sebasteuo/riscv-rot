@@ -1,0 +1,90 @@
+From 1be88992e0d8f618d043d877b548b01762b294a9 Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Fri, 21 Aug 2026 05:03:58 -0600
+Subject: [PATCH] pmu: agregar eventos arquitecturales para el TFG
+
+Define seis eventos nuevos en el rango 0xF0-0xF5, fuera de la
+codificacion SBI v0.3. Los selectores de evento son WARL definidos
+por la plataforma segun el manual privilegiado, asi que definir
+eventos propios es conforme a la especificacion.
+
+Implementa dos de ellos:
+- PRIV_SWITCH: transiciones reales de modo de privilegio
+- TRAP_TAKEN: excepciones e interrupciones tomadas
+
+Los cuatro restantes (loads, stores, branches, saltos indirectos)
+requieren instrumentar la traduccion de instrucciones.
+---
+ target/riscv/cpu.h        | 13 +++++++++++++
+ target/riscv/cpu_helper.c |  5 +++++
+ target/riscv/pmu.c        |  7 +++++++
+ 3 files changed, 25 insertions(+)
+
+diff --git a/target/riscv/cpu.h b/target/riscv/cpu.h
+index 35d1f6362c..21eec1650a 100644
+--- a/target/riscv/cpu.h
++++ b/target/riscv/cpu.h
+@@ -934,6 +934,19 @@ enum riscv_pmu_event_idx {
+     RISCV_PMU_EVENT_CACHE_DTLB_READ_MISS = 0x10019,
+     RISCV_PMU_EVENT_CACHE_DTLB_WRITE_MISS = 0x1001B,
+     RISCV_PMU_EVENT_CACHE_ITLB_PREFETCH_MISS = 0x10021,
++
++    /*
++     * Eventos arquitecturales anadidos por qemu-ccore para el TFG CE-5600.
++     * El rango 0xF0-0xFF queda fuera de la codificacion SBI v0.3 y los
++     * selectores de evento son WARL definidos por la plataforma, segun el
++     * manual privilegiado de RISC-V.
++     */
++    RISCV_PMU_EVENT_LOAD_RETIRED   = 0xF0,
++    RISCV_PMU_EVENT_STORE_RETIRED  = 0xF1,
++    RISCV_PMU_EVENT_BRANCH_TAKEN   = 0xF2,
++    RISCV_PMU_EVENT_JUMP_INDIRECT  = 0xF3,
++    RISCV_PMU_EVENT_TRAP_TAKEN     = 0xF4,
++    RISCV_PMU_EVENT_PRIV_SWITCH    = 0xF5,
+ };
+ 
+ /* used by tcg/tcg-cpu.c*/
+diff --git a/target/riscv/cpu_helper.c b/target/riscv/cpu_helper.c
+index dd6c861a90..4c4b649ae3 100644
+--- a/target/riscv/cpu_helper.c
++++ b/target/riscv/cpu_helper.c
+@@ -1038,6 +1038,8 @@ void riscv_cpu_set_mode(CPURISCVState *env, target_ulong newpriv, bool virt_en)
+         }
+ 
+         riscv_pmu_update_fixed_ctrs(env, newpriv, virt_en);
++        /* TFG CE-5600: contar transiciones reales de modo */
++        riscv_pmu_incr_ctr(env_archcpu(env), RISCV_PMU_EVENT_PRIV_SWITCH);
+     }
+ 
+     /* tlb_flush is unnecessary as mode is contained in mmu_idx */
+@@ -2183,6 +2185,9 @@ void riscv_cpu_do_interrupt(CPUState *cs)
+     target_ulong mtval2 = 0;
+     target_ulong src;
+     int sxlen = 0;
++
++    /* TFG CE-5600: contar toda excepcion o interrupcion tomada */
++    riscv_pmu_incr_ctr(cpu, RISCV_PMU_EVENT_TRAP_TAKEN);
+     int mxlen = 16 << riscv_cpu_mxl(env);
+     bool nnmi_excep = false;
+ 
+diff --git a/target/riscv/pmu.c b/target/riscv/pmu.c
+index 708f2ec7aa..4ad525c92e 100644
+--- a/target/riscv/pmu.c
++++ b/target/riscv/pmu.c
+@@ -356,6 +356,13 @@ int riscv_pmu_update_event_map(CPURISCVState *env, uint64_t value,
+     case RISCV_PMU_EVENT_CACHE_DTLB_READ_MISS:
+     case RISCV_PMU_EVENT_CACHE_DTLB_WRITE_MISS:
+     case RISCV_PMU_EVENT_CACHE_ITLB_PREFETCH_MISS:
++    /* Eventos arquitecturales de qemu-ccore (TFG CE-5600) */
++    case RISCV_PMU_EVENT_LOAD_RETIRED:
++    case RISCV_PMU_EVENT_STORE_RETIRED:
++    case RISCV_PMU_EVENT_BRANCH_TAKEN:
++    case RISCV_PMU_EVENT_JUMP_INDIRECT:
++    case RISCV_PMU_EVENT_TRAP_TAKEN:
++    case RISCV_PMU_EVENT_PRIV_SWITCH:
+         break;
+     default:
+         /* We don't support any raw events right now */
+-- 
+2.43.0
+

@@ -1,0 +1,108 @@
+From d9f5dbc2504bda1da6630cce29cce205b240711f Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Fri, 21 Aug 2026 11:26:24 -0600
+Subject: [PATCH] pmu: count loads, stores and indirect jumps via TCG helper
+
+Adds helper_ccore_count(), called from generated code so counts
+reflect executed instructions rather than translated ones.
+
+Instrumented at the three central points in trans_rvi.c.inc:
+  gen_load    -> LOAD_RETIRED   (covers lb/lh/lw/ld and unsigned)
+  gen_store   -> STORE_RETIRED  (covers sb/sh/sw/sd)
+  trans_jalr  -> JUMP_INDIRECT  (returns and indirect calls)
+
+Measured on the firmware test suite:
+  LOAD_RETIRED  1101273
+  STORE_RETIRED  525838
+  JUMP_INDIRECT   52255
+
+The 2:1 load/store ratio matches what -O0 code produces, and the
+previously validated PRIV_SWITCH and TRAP_TAKEN counts are unchanged.
+---
+ target/riscv/helper.h                   |  3 +++
+ target/riscv/insn_trans/trans_rvi.c.inc | 12 ++++++++++++
+ target/riscv/op_helper.c                | 13 +++++++++++++
+ 3 files changed, 28 insertions(+)
+
+diff --git a/target/riscv/helper.h b/target/riscv/helper.h
+index b785456ee0..c2ed2d6444 100644
+--- a/target/riscv/helper.h
++++ b/target/riscv/helper.h
+@@ -1,3 +1,6 @@
++/* CE-5600: architectural event counters */
++DEF_HELPER_FLAGS_2(ccore_count, TCG_CALL_NO_RWG, void, env, i32)
++
+ /* Exceptions */
+ DEF_HELPER_2(raise_exception, noreturn, env, i32)
+ 
+diff --git a/target/riscv/insn_trans/trans_rvi.c.inc b/target/riscv/insn_trans/trans_rvi.c.inc
+index 54b9b4f241..d79aad21e8 100644
+--- a/target/riscv/insn_trans/trans_rvi.c.inc
++++ b/target/riscv/insn_trans/trans_rvi.c.inc
+@@ -140,6 +140,10 @@ static void gen_ctr_jalr(DisasContext *ctx, arg_jalr *a, TCGv dest)
+ 
+ static bool trans_jalr(DisasContext *ctx, arg_jalr *a)
+ {
++    /* CE-5600: count executions, not translations */
++    gen_helper_ccore_count(tcg_env,
++        tcg_constant_i32(RISCV_PMU_EVENT_JUMP_INDIRECT));
++
+     TCGLabel *misaligned = NULL;
+     TCGv target_pc = tcg_temp_new();
+     TCGv succ_pc = dest_gpr(ctx, a->rd);
+@@ -401,6 +405,10 @@ static bool gen_load_i128(DisasContext *ctx, arg_lb *a, MemOp memop)
+ static bool gen_load(DisasContext *ctx, arg_lb *a, MemOp memop)
+ {
+     bool out;
++    /* CE-5600: count executions, not translations */
++    gen_helper_ccore_count(tcg_env,
++        tcg_constant_i32(RISCV_PMU_EVENT_LOAD_RETIRED));
++
+ 
+     memop |= mo_endian(ctx);
+     if (ctx->cfg_ptr->ext_zama16b) {
+@@ -504,6 +512,10 @@ static bool gen_store_i128(DisasContext *ctx, arg_sb *a, MemOp memop)
+ 
+ static bool gen_store(DisasContext *ctx, arg_sb *a, MemOp memop)
+ {
++    /* CE-5600: count executions, not translations */
++    gen_helper_ccore_count(tcg_env,
++        tcg_constant_i32(RISCV_PMU_EVENT_STORE_RETIRED));
++
+     memop |= mo_endian(ctx);
+     if (ctx->cfg_ptr->ext_zama16b) {
+         memop |= MO_ATOM_WITHIN16;
+diff --git a/target/riscv/op_helper.c b/target/riscv/op_helper.c
+index 6ccc127c30..785f73cbb2 100644
+--- a/target/riscv/op_helper.c
++++ b/target/riscv/op_helper.c
+@@ -21,6 +21,7 @@
+ #include "qemu/osdep.h"
+ #include "cpu.h"
+ #include "internals.h"
++#include "pmu.h"
+ #include "exec/cputlb.h"
+ #include "accel/tcg/cpu-ldst.h"
+ #include "accel/tcg/probe.h"
+@@ -62,6 +63,18 @@ void helper_raise_exception(CPURISCVState *env, uint32_t exception)
+     riscv_raise_exception(env, exception, 0);
+ }
+ 
++/*
++ * CE-5600: architectural event counter helper.
++ *
++ * Called from generated code, so it runs once per executed instruction
++ * rather than once per translation. The privilege-mode filtering and
++ * overflow handling are already done by riscv_pmu_incr_ctr().
++ */
++void helper_ccore_count(CPURISCVState *env, uint32_t event_idx)
++{
++    riscv_pmu_incr_ctr(env_archcpu(env), event_idx);
++}
++
+ target_ulong helper_csrr(CPURISCVState *env, int csr)
+ {
+     /*
+-- 
+2.43.0
+

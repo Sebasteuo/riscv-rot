@@ -1,0 +1,155 @@
+From d455fe5aaf1c389d5f6dc349a89f4fb686e4fb9d Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Fri, 15 May 2026 09:34:47 -0600
+Subject: [PATCH] Add file-backed persistence to Secure Storage device
+
+The device now accepts a 'file' property that points to a backing
+file on disk. After every write or erase, the state is saved to
+the file. On startup, if the file exists, the stored data is loaded
+so that keys and counters survive across QEMU restarts.
+---
+ hw/misc/secure_storage.c | 62 ++++++++++++++++++++++++++++++++++++++++
+ hw/riscv/virt.c          | 14 +++++++--
+ 2 files changed, 74 insertions(+), 2 deletions(-)
+
+diff --git a/hw/misc/secure_storage.c b/hw/misc/secure_storage.c
+index e3fdf6ac7c..a3acb10078 100644
+--- a/hw/misc/secure_storage.c
++++ b/hw/misc/secure_storage.c
+@@ -40,6 +40,7 @@
+ #include "qemu/log.h"
+ #include "qemu/module.h"
+ #include "qapi/error.h"
++#include "hw/core/qdev-properties.h"
+ 
+ #define TYPE_SECURE_STORAGE "secure-storage"
+ #define SECURE_STORAGE(obj) \
+@@ -87,8 +88,59 @@ typedef struct {
+     uint8_t slots[NUM_SLOTS][SLOT_SIZE];
+     uint8_t slot_used[NUM_SLOTS];  /* 1 if slot has data, 0 if empty */
+     uint32_t slot_sizes[NUM_SLOTS]; /* how many bytes are valid in each slot */
++
++    /* optional backing file for persistence between reboots.
++     * if set, the device saves its state to this file after every
++     * write or erase, and loads it on startup. this simulates
++     * non-volatile storage like flash or EEPROM. */
++    char *backing_file;
+ } SecureStorageState;
+ 
++/*
++ * ss_save_to_file - write the entire storage state to the backing file.
++ * Called after every WRITE or ERASE so changes survive a QEMU restart.
++ * File format: slot_used (8 bytes) + slot_sizes (32 bytes) + slots (512 bytes)
++ */
++static void ss_save_to_file(SecureStorageState *s)
++{
++    FILE *f;
++    if (!s->backing_file) return;
++    f = fopen(s->backing_file, "wb");
++    if (!f) return;
++    fwrite(s->slot_used, 1, NUM_SLOTS, f);
++    fwrite(s->slot_sizes, sizeof(uint32_t), NUM_SLOTS, f);
++    fwrite(s->slots, SLOT_SIZE, NUM_SLOTS, f);
++    fclose(f);
++}
++
++/*
++ * ss_load_from_file - restore storage state from the backing file.
++ * Called once during device init. If file does not exist, storage
++ * starts empty (first boot).
++ */
++static void ss_load_from_file(SecureStorageState *s)
++{
++    FILE *f;
++    size_t n;
++    if (!s->backing_file) return;
++    f = fopen(s->backing_file, "rb");
++    if (!f) return;
++    n = fread(s->slot_used, 1, NUM_SLOTS, f);
++    if (n != NUM_SLOTS) goto bad;
++    n = fread(s->slot_sizes, sizeof(uint32_t), NUM_SLOTS, f);
++    if (n != NUM_SLOTS) goto bad;
++    n = fread(s->slots, SLOT_SIZE, NUM_SLOTS, f);
++    if (n != NUM_SLOTS) goto bad;
++    fclose(f);
++    return;
++bad:
++    /* file is corrupt or truncated, start fresh */
++    memset(s->slots, 0, sizeof(s->slots));
++    memset(s->slot_used, 0, sizeof(s->slot_used));
++    memset(s->slot_sizes, 0, sizeof(s->slot_sizes));
++    fclose(f);
++}
++
+ /*
+  * Handle writes from the firmware to our registers.
+  * Most registers just store the value. Writing to CMD triggers
+@@ -128,6 +180,7 @@ static void ss_write(void *opaque, hwaddr offset, uint64_t value, unsigned sz)
+                 memset(s->slots[s->slot_id], 0, SLOT_SIZE);
+                 s->slot_used[s->slot_id] = 0;
+                 s->slot_sizes[s->slot_id] = 0;
++                ss_save_to_file(s);
+                 s->status = STATUS_OK;
+             } else {
+                 s->status = STATUS_ERROR;
+@@ -182,6 +235,7 @@ static void ss_write(void *opaque, hwaddr offset, uint64_t value, unsigned sz)
+             if (s->data_cursor > s->slot_sizes[s->slot_id]) {
+                 s->slot_sizes[s->slot_id] = s->data_cursor;
+             }
++            ss_save_to_file(s);
+         }
+         break;
+ 
+@@ -264,16 +318,24 @@ static void ss_realize(DeviceState *dev, Error **errp)
+     memset(s->slot_used, 0, sizeof(s->slot_used));
+     memset(s->slot_sizes, 0, sizeof(s->slot_sizes));
+ 
++    /* load saved state from backing file if it exists */
++    ss_load_from_file(s);
++
+     /* register our MMIO region, 0x100 bytes is plenty for our registers */
+     memory_region_init_io(&s->iomem, OBJECT(s), &ss_ops, s,
+                           "secure-storage", 0x100);
+     sysbus_init_mmio(SYS_BUS_DEVICE(s), &s->iomem);
+ }
+ 
++static const Property ss_properties[] = {
++    DEFINE_PROP_STRING("file", SecureStorageState, backing_file),
++};
++
+ static void ss_class_init(ObjectClass *klass, const void *data)
+ {
+     DeviceClass *dc = DEVICE_CLASS(klass);
+     dc->realize = ss_realize;
++    device_class_set_props(dc, ss_properties);
+ }
+ 
+ static const TypeInfo ss_info = {
+diff --git a/hw/riscv/virt.c b/hw/riscv/virt.c
+index fa26a7c0b4..5fdd8f3dea 100644
+--- a/hw/riscv/virt.c
++++ b/hw/riscv/virt.c
+@@ -1701,8 +1701,18 @@ static void virt_machine_init(MachineState *machine)
+     sysbus_create_simple("goldfish_rtc", s->memmap[VIRT_RTC].base,
+         qdev_get_gpio_in(mmio_irqchip, RTC_IRQ));
+ 
+-    /* Secure Storage MMIO device for Root of Trust */
+-    sysbus_create_simple("secure-storage", s->memmap[VIRT_SECURE_STORAGE].base, NULL);
++    /* Secure Storage MMIO device for Root of Trust.
++     * The "file" property points to a file on disk that stores the
++     * contents of all 8 slots. If the file exists, the device loads
++     * it at startup so keys persist between reboots. If it does not
++     * exist, the device starts empty (first boot). */
++    {
++        DeviceState *ss_dev = qdev_new("secure-storage");
++        qdev_prop_set_string(ss_dev, "file", "secure_storage.bin");
++        sysbus_realize_and_unref(SYS_BUS_DEVICE(ss_dev), &error_fatal);
++        sysbus_mmio_map(SYS_BUS_DEVICE(ss_dev), 0,
++                        s->memmap[VIRT_SECURE_STORAGE].base);
++    }
+ 
+     for (i = 0; i < ARRAY_SIZE(s->flash); i++) {
+         /* Map legacy -drive if=pflash to machine properties */
+-- 
+2.43.0
+

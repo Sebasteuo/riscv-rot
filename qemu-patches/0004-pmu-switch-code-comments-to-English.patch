@@ -1,0 +1,68 @@
+From 35a0bfb93dccd94a71d0c0f51b3c01ef64dd1e68 Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Fri, 21 Aug 2026 05:10:49 -0600
+Subject: [PATCH] pmu: switch code comments to English
+
+---
+ target/riscv/cpu.h        | 8 ++++----
+ target/riscv/cpu_helper.c | 4 ++--
+ target/riscv/pmu.c        | 2 +-
+ 3 files changed, 7 insertions(+), 7 deletions(-)
+
+diff --git a/target/riscv/cpu.h b/target/riscv/cpu.h
+index 21eec1650a..18efd37db5 100644
+--- a/target/riscv/cpu.h
++++ b/target/riscv/cpu.h
+@@ -936,10 +936,10 @@ enum riscv_pmu_event_idx {
+     RISCV_PMU_EVENT_CACHE_ITLB_PREFETCH_MISS = 0x10021,
+ 
+     /*
+-     * Eventos arquitecturales anadidos por qemu-ccore para el TFG CE-5600.
+-     * El rango 0xF0-0xFF queda fuera de la codificacion SBI v0.3 y los
+-     * selectores de evento son WARL definidos por la plataforma, segun el
+-     * manual privilegiado de RISC-V.
++     * Architectural events added by qemu-ccore for the CE-5600 project.
++     * The 0xF0-0xFF range falls outside the SBI v0.3 encoding. Event
++     * selectors are WARL and platform-defined per the RISC-V privileged
++     * specification, so defining custom events is spec-compliant.
+      */
+     RISCV_PMU_EVENT_LOAD_RETIRED   = 0xF0,
+     RISCV_PMU_EVENT_STORE_RETIRED  = 0xF1,
+diff --git a/target/riscv/cpu_helper.c b/target/riscv/cpu_helper.c
+index 4c4b649ae3..99818ea04e 100644
+--- a/target/riscv/cpu_helper.c
++++ b/target/riscv/cpu_helper.c
+@@ -1038,7 +1038,7 @@ void riscv_cpu_set_mode(CPURISCVState *env, target_ulong newpriv, bool virt_en)
+         }
+ 
+         riscv_pmu_update_fixed_ctrs(env, newpriv, virt_en);
+-        /* TFG CE-5600: contar transiciones reales de modo */
++        /* CE-5600: count actual privilege mode transitions */
+         riscv_pmu_incr_ctr(env_archcpu(env), RISCV_PMU_EVENT_PRIV_SWITCH);
+     }
+ 
+@@ -2186,7 +2186,7 @@ void riscv_cpu_do_interrupt(CPUState *cs)
+     target_ulong src;
+     int sxlen = 0;
+ 
+-    /* TFG CE-5600: contar toda excepcion o interrupcion tomada */
++    /* CE-5600: count every exception or interrupt taken */
+     riscv_pmu_incr_ctr(cpu, RISCV_PMU_EVENT_TRAP_TAKEN);
+     int mxlen = 16 << riscv_cpu_mxl(env);
+     bool nnmi_excep = false;
+diff --git a/target/riscv/pmu.c b/target/riscv/pmu.c
+index 4ad525c92e..d17cc9e445 100644
+--- a/target/riscv/pmu.c
++++ b/target/riscv/pmu.c
+@@ -356,7 +356,7 @@ int riscv_pmu_update_event_map(CPURISCVState *env, uint64_t value,
+     case RISCV_PMU_EVENT_CACHE_DTLB_READ_MISS:
+     case RISCV_PMU_EVENT_CACHE_DTLB_WRITE_MISS:
+     case RISCV_PMU_EVENT_CACHE_ITLB_PREFETCH_MISS:
+-    /* Eventos arquitecturales de qemu-ccore (TFG CE-5600) */
++    /* qemu-ccore architectural events (CE-5600) */
+     case RISCV_PMU_EVENT_LOAD_RETIRED:
+     case RISCV_PMU_EVENT_STORE_RETIRED:
+     case RISCV_PMU_EVENT_BRANCH_TAKEN:
+-- 
+2.43.0
+

@@ -1,154 +1,192 @@
 # Root of Trust Firmware for RISC-V
 
-Bare-metal security firmware for RISC-V that implements TPM 2.0 functions using Physical Memory Protection (PMP) for hardware isolation. No OS, no stdlib, just firmware on the processor.
+Bare-metal security firmware for RISC-V. It implements TPM 2.0 style
+services with Physical Memory Protection for isolation, verifies the next
+boot stage against a signature, and answers attestation requests at
+runtime using hardware event counters. No operating system and no
+standard library, just firmware running on the processor.
 
-Built as a capstone project at Instituto Tecnologico de Costa Rica.
+Built as a graduation project at Instituto Tecnologico de Costa Rica.
+
+## What the firmware does
+
+The crypto core runs in machine mode and configures PMP so that nothing
+below it can reach the secrets. User mode talks to the core through a
+shared memory mailbox: it writes a command, raises an ecall, and the core
+answers.
+
+On top of that base the project adds three things.
+
+**A two stage secure boot.** A small first stage verifies an Ed25519
+signature over the second stage before handing control to it. The public
+key lives in the read only section of the first stage, so replacing it
+means replacing the stage that holds it.
+
+**Runtime attestation from event counters.** The firmware programs the
+hardware performance counters, opens a measurement window around the code
+it observes, and compares three ratios against a per application profile.
+The verdict is computed inside the root of trust, not on a remote
+verifier, and it gates access to sealed secrets.
+
+**A measurement campaign on emulator and on silicon.** Every count was
+taken twice, once under QEMU with instruction accounting and once on a
+HiFive Unmatched board with four SiFive U74 cores, and the two were
+compared figure by figure.
 
 ## Quick start
 
-With Docker (easiest):
-
 ```bash
-git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
-docker build -t riscv-rot .
-docker run --rm -it riscv-rot
-```
+sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu make \
+  git ninja-build libglib2.0-dev libpixman-1-dev libslirp-dev python3 \
+  python3-venv pkg-config
 
-Or build natively:
-
-```bash
-sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu make git ninja-build libglib2.0-dev libpixman-1-dev libslirp-dev python3 python3-venv pkg-config
-
-# build QEMU (one time, no submodules needed)
-git clone --depth 1 https://gitlab.com/secce/qemu-ccore.git ~/qemu-ccore
-cd ~/qemu-ccore
+# the firmware needs a patched QEMU, see qemu-patches/README.md
+git clone https://gitlab.com/secce/qemu-ccore.git ~/qemu-ccore
+cd ~/qemu-ccore && git checkout tfg-counters
 mkdir -p build && cd build
-../configure --target-list=riscv64-softmmu
-ninja -j$(nproc)
-cd ~
+../configure --target-list=riscv64-softmmu && ninja -j$(nproc)
 
-# build and run
-git clone https://gitlab.com/secce/riscv-rot.git && cd riscv-rot
-make && make run
+# build and run the firmware
+cd ~ && git clone https://github.com/Sebasteuo/riscv-rot.git
+cd riscv-rot && make && make run
 ```
 
-If everything works you will see `ALL TESTS PASSED` at the end (exit QEMU with Ctrl-A then X). To get a pass/fail exit code (handy for CI), run `make test` instead.
-
-## What this is
-
-A TPM is a security chip that stores keys, measures firmware, and lets a remote party verify that your system has not been tampered with. This project does the same thing in firmware using the protection mechanisms that RISC-V already has.
-
-The crypto core runs in M-mode (highest privilege). It configures PMP to block all access to secrets from lower privilege modes. The only way for U-mode code to interact with the core is through a shared memory mailbox where it writes a command, triggers an ecall, and the core processes the request.
+The firmware runs 36 tests and you should see `ALL TESTS PASSED` at the
+end. Exit QEMU with Ctrl-A then X. For a pass or fail exit code, useful
+in CI, run `make test` instead.
 
 ## Architecture
 
 ![Architecture Diagram](docs/architecture.png)
 
-## What it can do
+## Services
 
-The firmware boots, measures its own code with SHA-256, derives identity keys (EK and SRK) using HMAC-SHA256, verifies integrity against golden values (Secure Boot), and then drops to U-mode where it accepts service requests.
+The firmware boots, measures its own code with SHA-256, derives its
+identity keys from provisioning seeds, checks itself against the golden
+values, and then drops to user mode to serve requests.
 
-Services available through the shared memory interface: integrity measurement of raw binaries into PCR registers, TPM2_Quote for remote attestation (signs all PCRs with the EK), sealed storage encrypted with AES-128 where the key is derived from the PCR state (if the firmware changes, the sealed data becomes unreadable), monotonic counters for anti-rollback protection, ELF header validation with a hash whitelist for measured launch, and supply chain attestation where each firmware component must be signed by a registered vendor.
+Through the mailbox it offers measurement of raw binaries into PCR
+registers, a quote that signs the PCR state, sealed storage encrypted
+with AES-128 under a key derived from that state, monotonic counters for
+anti rollback, ELF validation against a hash whitelist, and supply chain
+checks where every component must carry a registered vendor signature.
 
-Access control requires password authentication before any service. Three wrong passwords trigger a dictionary attack lockout. After authenticating, the host gets a session token that expires after 20 service calls, forcing re-authentication.
+Access control asks for a password before any service. Three wrong
+attempts trigger a lockout. After authenticating, the caller gets a
+session token that expires after 20 calls.
 
-All crypto is standalone with no external dependencies: SHA-256 (FIPS 180-4), AES-128 (FIPS 197), and HMAC-SHA256 (RFC 2104).
+All the symmetric cryptography is written from the specifications with no
+external dependency: SHA-256 from FIPS 180-4, AES-128 from FIPS 197 and
+HMAC-SHA256 from RFC 2104. Ed25519 verification uses TweetNaCl.
 
-## TPM 2.0 client library
+One naming note. The firmware calls its report key the Endorsement Key,
+following TPM vocabulary, but that key is symmetric and derived on the
+device. In the TCG credential profile the same name belongs to an
+asymmetric pair, so the match is in the name and not in the mechanism.
 
-The project includes a C library that follows TPM 2.0 command naming so anyone familiar with TPM programming can use it directly:
+## Reproducing the measurements
 
-```c
-#include "tpm2_api.h"
+| Command | What it produces |
+|---|---|
+| `make test` | the platform test suite with a pass or fail exit code |
+| `make secureboot` | builds both boot stages and the signed image |
+| `make test-chain` | runs the full chain from the first stage |
+| `make test-reject` | checks that a tampered image is refused |
+| `make profiles` | prints the nominal profile of every application |
+| `make check-profiles` | evaluates the classifier against those profiles |
+| `make measure-service` | cost of the attestation service in instructions |
+| `make measure-verdict` | cost of computing one verdict |
+| `make verify-reports` | verifies the authentication code of every report |
+| `make measure-evade` | the window placement trial, both halves |
 
-TPM2_Startup(password, password_len);
-TPM2_PCR_Extend(2, firmware_binary, binary_size);
-
-uint8_t sig[32];
-TPM2_Quote(sig);
-
-TPM2_Seal(secret, secret_len);
-TPM2_Unseal(recovered, 32);
-
-uint32_t counter;
-TPM2_NV_Read(&counter);
-TPM2_NV_Increment(expected_version, &new_value);
-
-TPM2_ELF_Validate(elf_header);
-TPM2_VerifySignature(vendor_id, signature, component, len);
-
-TPM2_Shutdown();
-```
-
-All functions return `TPM2_RC_SUCCESS` on success or a specific error code.
-
-## Python tools
-
-`tools/verify_quote.py` verifies remote attestation by recomputing the Quote signature from the EK seed and comparing it with what the device reported. Run `python3 tools/verify_quote.py --demo` for a quick test.
-
-`tools/rot_manager.py` parses QEMU output and shows a management dashboard with all PCRs, storage slots, counter values, and test results. It can also export a JSON report. Run `python3 tools/rot_manager.py --run` for a live dashboard, or `--parse FILE` on a saved capture.
+Saved runs from the campaign are under `docs/tfg/`.
 
 ## Project structure
 
 | Path | What it does |
 |---|---|
-| src/start.S | Bootstrap: stack, BSS, jump to main |
-| src/main.c | Boot sequence, measurement, Secure Boot check |
-| src/uart.c | Serial output via MMIO |
-| src/pmp.c | Configures 6 PMP regions |
-| src/trap.c | Trap handler with auth, sessions, and all crypto services |
-| src/trap_entry.S | Assembly trampoline for trap handling |
-| src/switch.c | M-mode to U-mode transition |
-| src/user.c | U-mode test suite (35 tests) |
-| src/secure_storage.c | MMIO device driver |
-| src/pcr.c | PCR extend operations |
-| src/keygen.c | HMAC-SHA256 key derivation |
-| src/tpm2_api.c | TPM 2.0 client library |
-| lib/sha256.c | SHA-256 (FIPS 180-4) |
-| lib/aes128.c | AES-128 (FIPS 197) |
-| tools/verify_quote.py | Remote attestation verifier |
-| tools/rot_manager.py | Management dashboard |
-| scripts/virt.ld | Linker script |
+| `src/start.S` | bootstrap: stack, BSS, jump to main |
+| `src/main.c` | boot sequence, measurement, secure boot check |
+| `src/pmp.c` | configures the 6 PMP regions |
+| `src/trap.c` | trap handler with authentication, sessions and services |
+| `src/switch.c` | machine mode to user mode transition |
+| `src/user.c` | the user mode test suite |
+| `src/hpm.c` | programs and reads the event counters |
+| `src/attest.c` | the attestation window and the verdict |
+| `src/profile.c` | the per application profiles and the band rule |
+| `src/attack.c` | the adversarial scenarios used in the evaluation |
+| `src/elf64.c` | ELF validation for measured launch |
+| `include/image.h` | layout of the signed boot image |
+| `src/stage1_main.c` | first stage: verifies the signed image |
+| `lib/sha256.c` | SHA-256, FIPS 180-4 |
+| `lib/aes128.c` | AES-128, FIPS 197 |
+| `lib/hmac.c` | HMAC-SHA256, RFC 2104 |
+| `lib/tweetnacl/` | Ed25519, public domain, see THIRD-PARTY.md |
+| `src/bench/` | Embench benchmarks, see THIRD-PARTY.md |
+| `compare/` | the harness that compares emulator against silicon |
+| `qemu-patches/` | the QEMU changes this firmware needs |
+| `tools/` | report verification and the management dashboard |
 
 ## Memory map
 
-| Address | What | U-mode |
+| Address | What | User mode |
 |---|---|---|
-| 0x02000000 | CLINT (mtime) | Blocked |
-| 0x10000000 | UART | Read + Write |
-| 0x10200000 | Secure Storage MMIO | Blocked |
-| 0x80000000 | M-mode crypto core (code, data, stack) | Blocked (default-deny) |
-| 0x80080000 | Shared code (UART, SHA-256, HMAC) | Read + Execute |
-| 0x80090000 | U-mode code and stack | Read + Write + Execute |
-| 0x80100000 | Secret zone (4KB) | Blocked |
-| 0x80300000 | Shared memory mailbox (4KB) | Read + Write, no execute |
+| 0x02000000 | CLINT | blocked |
+| 0x10000000 | UART | read and write |
+| 0x10200000 | Secure Storage MMIO | blocked |
+| 0x80000000 | crypto core, code, data and stack | blocked |
+| 0x80080000 | shared code: UART, SHA-256, HMAC | read and execute |
+| 0x80090000 | user mode code and stack | read, write and execute |
+| 0x80100000 | secret zone, 4 KB | blocked |
+| 0x80300000 | shared mailbox, 4 KB | read and write, no execute |
 
-## Secure storage slots
+Slot 0 of the secure storage holds the report key, slot 1 the storage
+root key, slots 2 to 4 hold PCR snapshots, slot 5 the monotonic counter,
+slot 6 the sealed data and slot 7 the seal policy hash.
 
-Slot 0 holds the Endorsement Key (32 bytes), slot 1 the Storage Root Key (32 bytes), slots 2-4 hold PCR snapshots, slot 5 is the monotonic counter (4 bytes), slot 6 holds sealed data encrypted with AES-128, and slot 7 stores the seal policy hash.
+## QEMU changes
 
-## Tests
+The firmware needs two things upstream QEMU does not have: a Secure
+Storage device at 0x10200000 with 8 slots of 64 bytes, and seven extra
+event counters outside the SBI encoding that count loads, stores,
+branches, indirect jumps, privilege switches and traps taken.
 
-The firmware runs 35 automated tests covering PMP isolation (reads blocked, writes blocked, config registers locked from U-mode), authentication (wrong password, lockout, correct password), session management (token creation, TTL exhaustion, expiry), monotonic counters (read, increment, rollback rejection), TPM2_Quote (signature consistency), sealed storage (seal, unseal, PCR mismatch rejection), real binary measurement (actual firmware code), ELF validation (valid RISC-V accepted, ARM rejected), whitelist verification (register and check), and supply chain attestation (valid signature, tampered rejection, unknown vendor rejection).
+Both are in `qemu-patches/` as a patch series, which records exactly what
+changed. The emulator tree the measurements were taken on is the
+`tfg-counters` branch at gitlab.com/secce/qemu-ccore. See
+`qemu-patches/README.md` for why the patches are a record and not a build
+recipe for today's QEMU.
 
-## QEMU device
+## Tools
 
-We forked QEMU and added a Secure Storage MMIO device at 0x10200000 with 8 slots of 64 bytes each. The fork is at gitlab.com/secce/qemu-ccore. No external submodules are needed to build it, just clone with --depth 1 and run configure + ninja.
+`tools/verify_quote.py` recomputes a report authentication code from the
+provisioning seed and compares it against what the device produced. Run
+it with `--demo` for a quick check.
+
+`tools/rot_manager.py` parses QEMU output and shows the PCRs, the storage
+slots, the counter values and the test results. It can export a JSON
+report.
 
 ## References
 
-TCG TPM 2.0 Library Specification v185, RISC-V Privileged Specification v1.12, NIST SP 800-108 (KDF), NIST SP 800-155 (BIOS Integrity Measurement), NIST SP 800-193 (Platform Firmware Resiliency), FIPS 180-4 (SHA-256), FIPS 197 (AES), Sailer et al. "Design and Implementation of a TCG-based IMA" USENIX Security 2004.
+TCG TPM 2.0 Library Specification v185, RISC-V Privileged Specification,
+NIST SP 800-108, NIST SP 800-155, NIST SP 800-193, FIPS 180-4, FIPS 197,
+RFC 2104 and RFC 8032.
 
 ## Author
 
-Sebastian Alba, Computer Engineering, Instituto Tecnologico de Costa Rica. Supervisor: Dr.-Ing. Jeferson Gonzalez Gomez, SECCE Research Group.
+Sebastian Alba Vives, Computer Engineering, Instituto Tecnologico de
+Costa Rica.
+
+Organisational counterpart: Dr.-Ing. Jeferson Gonzalez Gomez, SECCE
+Research Group.
 
 ## License
 
 GPL-3.0-or-later, see [LICENSE](LICENSE).
 
 The firmware links the Embench benchmarks into the same image. Those
-benchmarks are GPL-3.0-or-later, so the binary this repository builds is a
-combined work under that licence. `THIRD-PARTY.md` lists every component
-that keeps its own terms, including TweetNaCl, which is in the public
-domain.
+benchmarks are GPL-3.0-or-later, so the binary this repository builds is
+a combined work under that licence. `THIRD-PARTY.md` lists every
+component that keeps its own terms, including TweetNaCl, which is in the
+public domain.

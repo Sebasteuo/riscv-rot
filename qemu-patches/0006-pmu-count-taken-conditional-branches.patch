@@ -1,0 +1,32 @@
+From 7c3a04c52be238aa1df03be3411bcf6d8c13c1af Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Fri, 21 Aug 2026 11:29:05 -0600
+Subject: [PATCH] pmu: count taken conditional branches
+
+The helper goes after gen_set_label(l), which QEMU marks as the
+branch-taken path. Placing it at the top of gen_branch would have
+counted every executed conditional branch instead.
+
+BRANCH_TAKEN = 142179 on the firmware test suite, 2.7x the indirect
+jump count, consistent with loop-heavy code.
+---
+ target/riscv/insn_trans/trans_rvi.c.inc | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/target/riscv/insn_trans/trans_rvi.c.inc b/target/riscv/insn_trans/trans_rvi.c.inc
+index d79aad21e8..145e676b37 100644
+--- a/target/riscv/insn_trans/trans_rvi.c.inc
++++ b/target/riscv/insn_trans/trans_rvi.c.inc
+@@ -305,6 +305,9 @@ static bool gen_branch(DisasContext *ctx, arg_b *a, TCGCond cond)
+     ctx->pc_save = orig_pc_save;
+ 
+     gen_set_label(l); /* branch taken */
++    /* CE-5600: only reached when the branch is actually taken */
++    gen_helper_ccore_count(tcg_env,
++        tcg_constant_i32(RISCV_PMU_EVENT_BRANCH_TAKEN));
+ 
+     if (!riscv_cpu_allow_16bit_insn(ctx->cfg_ptr,
+                                     ctx->priv_ver,
+-- 
+2.43.0
+

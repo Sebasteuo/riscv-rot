@@ -1,0 +1,71 @@
+From 06ed08a355525bea9883a6d5ae461bd9709219ab Mon Sep 17 00:00:00 2001
+From: Sebastian Alba Vives <sebasjosue84@gmail.com>
+Date: Sun, 27 Sep 2026 19:45:53 -0600
+Subject: [PATCH] target/riscv: count retired conditional branches as a seventh
+ event
+
+BRANCH_TAKEN fires only on the taken path, which is what the classifier
+wants: a diversion shows up as a change in how often branches are
+taken. Real PMUs do not always offer that definition. The SiFive U74
+exposes conditional branches retired, taken or not, and nothing
+narrower, so comparing the emulator against that silicon needs the
+same definition on both sides.
+
+BRANCH_RETIRED (0xF6) is counted on entry to gen_branch, before the
+condition is evaluated. Nothing programs it by default, so existing
+measurements are untouched. A full run of the riscv-rot platform gives
+identical results before and after: 34 nominal windows, the same four
+attacks flagged, and the same counts on every adversarial scenario.
+---
+ target/riscv/cpu.h                      | 1 +
+ target/riscv/insn_trans/trans_rvi.c.inc | 9 +++++++++
+ target/riscv/pmu.c                      | 1 +
+ 3 files changed, 11 insertions(+)
+
+diff --git a/target/riscv/cpu.h b/target/riscv/cpu.h
+index 18efd37db5..d492011aa7 100644
+--- a/target/riscv/cpu.h
++++ b/target/riscv/cpu.h
+@@ -947,6 +947,7 @@ enum riscv_pmu_event_idx {
+     RISCV_PMU_EVENT_JUMP_INDIRECT  = 0xF3,
+     RISCV_PMU_EVENT_TRAP_TAKEN     = 0xF4,
+     RISCV_PMU_EVENT_PRIV_SWITCH    = 0xF5,
++    RISCV_PMU_EVENT_BRANCH_RETIRED = 0xF6,
+ };
+ 
+ /* used by tcg/tcg-cpu.c*/
+diff --git a/target/riscv/insn_trans/trans_rvi.c.inc b/target/riscv/insn_trans/trans_rvi.c.inc
+index 145e676b37..3b4026ee03 100644
+--- a/target/riscv/insn_trans/trans_rvi.c.inc
++++ b/target/riscv/insn_trans/trans_rvi.c.inc
+@@ -272,6 +272,15 @@ static void gen_setcond_i128(TCGv rl, TCGv rh,
+ 
+ static bool gen_branch(DisasContext *ctx, arg_b *a, TCGCond cond)
+ {
++    /*
++     * CE-5600: every conditional branch that executes, taken or not.
++     * BRANCH_TAKEN below fires only on the taken path. This one
++     * matches what real PMUs such as the SiFive U74 expose, which
++     * count retired conditional branches regardless of direction.
++     */
++    gen_helper_ccore_count(tcg_env,
++        tcg_constant_i32(RISCV_PMU_EVENT_BRANCH_RETIRED));
++
+     TCGLabel *l = gen_new_label();
+     TCGv src1 = get_gpr(ctx, a->rs1, EXT_SIGN);
+     TCGv src2 = get_gpr(ctx, a->rs2, EXT_SIGN);
+diff --git a/target/riscv/pmu.c b/target/riscv/pmu.c
+index d17cc9e445..e9aca1bb6b 100644
+--- a/target/riscv/pmu.c
++++ b/target/riscv/pmu.c
+@@ -363,6 +363,7 @@ int riscv_pmu_update_event_map(CPURISCVState *env, uint64_t value,
+     case RISCV_PMU_EVENT_JUMP_INDIRECT:
+     case RISCV_PMU_EVENT_TRAP_TAKEN:
+     case RISCV_PMU_EVENT_PRIV_SWITCH:
++    case RISCV_PMU_EVENT_BRANCH_RETIRED:
+         break;
+     default:
+         /* We don't support any raw events right now */
+-- 
+2.43.0
+
