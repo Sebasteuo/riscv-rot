@@ -36,8 +36,8 @@ extern void init_huffbench(void);   extern int body_huffbench(unsigned,unsigned)
 extern void init_matmult_int(void); extern int body_matmult_int(unsigned,unsigned);
 extern void init_md5sum(void);
 /* md5sum's body takes a third argument, the message length. The
-   platform declares it with two and gets away with it under QEMU;
-   on silicon the leftover register value makes len huge, malloc
+   platform declares it with two and gets away with it under QEMU.
+   On silicon the leftover register value makes len huge, malloc
    returns NULL and md5 memcpy's through it. Declared correctly
    here and called with the benchmark's own MSG_SIZE. */
 extern int body_md5sum(unsigned,unsigned,int);

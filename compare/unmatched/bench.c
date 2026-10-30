@@ -47,7 +47,7 @@ extern void init_crc32(void);
 extern int  body_crc32(unsigned lsf, unsigned gsf);
 extern void init_heap_beebs(void *heap, unsigned long size);
 
-/* crc32 needs a heap; the platform gives it one this size. */
+/* crc32 needs a heap. The platform gives it one this size. */
 static unsigned char heap[8192] __attribute__((aligned(16)));
 
 static void run_one(unsigned gsf)
@@ -95,7 +95,7 @@ void fw_main(void)
     for(;;) asm volatile("wfi");
 }
 
-/* crc32's heap allocator needs memset; the platform's board.c provides
+/* crc32's heap allocator needs memset. The platform's board.c provides
    it, but that file also drags in the attestation window hooks, which
    have no place here. A local copy keeps the link self-contained. */
 void *memset(void *s, int c, unsigned long n)

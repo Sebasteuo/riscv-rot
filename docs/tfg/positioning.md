@@ -43,7 +43,7 @@ system and no C standard library.
 | NumChecker | DAC 2013 | Counts events between known checkpoints in privileged flow | Deterministic profile matching, no learning. Linux kernel |
 | ConFirm | ICCAD 2015 | Detects firmware modification in embedded systems using counters | **Validates the architectural decision here:** the detector lives inside the bootloader. But it compares against stored signatures, without learning, and it instruments the monitored firmware |
 | Zhou et al. | AsiaCCS 2018 | Negative result: on multiprocess Linux, counters do not separate benign from malicious | Their causality argument scales with workload entropy. Fixed deterministic firmware sits at the opposite extreme |
-| Das et al. | IEEE S&P 2019 | Systematizes the pitfalls of counters in security | **The mandatory defensive citation.** Two of their four problems do not apply to bare-metal; the other two are bounded experimentally here |
+| Das et al. | IEEE S&P 2019 | Systematizes the pitfalls of counters in security | **The mandatory defensive citation.** Two of their four problems do not apply to bare-metal. The other two are bounded experimentally here |
 | Basu et al. | IEEE TIFS 2020 | Analytical framework for detection robustness | The counterweight to the two critiques above. Their guarantee assumes the attacker does not know which counters are observed |
 
 **Where this work sits.** This entire line runs on systems with an operating

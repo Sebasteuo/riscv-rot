@@ -4,7 +4,7 @@
  * Isolating the one-store offset.
  *
  * Three stores, nothing else, counted on both sides. qemu-ccore counts
- * a store when gen_store emits it; the U74 counts it at retirement. If
+ * a store when gen_store emits it. The U74 counts it at retirement. If
  * that is the whole story, the emulator reports one more than the core
  * does, because the csrr that reads the counter follows a store that
  * has been emitted but not yet retired.
