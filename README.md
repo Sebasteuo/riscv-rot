@@ -142,3 +142,13 @@ TCG TPM 2.0 Library Specification v185, RISC-V Privileged Specification v1.12, N
 ## Author
 
 Sebastian Alba, Computer Engineering, Instituto Tecnologico de Costa Rica. Supervisor: Dr.-Ing. Jeferson Gonzalez Gomez, SECCE Research Group.
+
+## License
+
+GPL-3.0-or-later, see [LICENSE](LICENSE).
+
+The firmware links the Embench benchmarks into the same image. Those
+benchmarks are GPL-3.0-or-later, so the binary this repository builds is a
+combined work under that licence. `THIRD-PARTY.md` lists every component
+that keeps its own terms, including TweetNaCl, which is in the public
+domain.

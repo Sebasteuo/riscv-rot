@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 /* qprobe.c
  *
  * Ventana de retiro del contador de stores enteros.

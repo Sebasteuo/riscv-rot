@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Copyright (C) 2026 Sebastian Alba Vives
 """
 Query cost of a verdict oracle against the profile classifier.
 

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 /*
  * Does 0xF2 count taken branches and 0xF6 all retired branches?
  *

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 # Stage-1 entry point.
 #
 # Runs at the reset address in M-mode with no runtime available. Sets

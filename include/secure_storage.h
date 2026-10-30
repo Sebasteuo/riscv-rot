@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 /* ==========================================================================
  * secure_storage.h - Secure Storage abstraction layer
  * ==========================================================================

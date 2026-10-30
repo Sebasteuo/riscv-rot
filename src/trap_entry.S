@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 /* ==========================================================================
  * trap_entry.S - Assembly trampoline for trap handling
  * ==========================================================================

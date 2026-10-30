@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 /* ==========================================================================
  * sha256.c - SHA-256 implementation for bare-metal
  * ==========================================================================

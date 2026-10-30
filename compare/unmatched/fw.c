@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 
 /*
  * Bare-metal firmware for the HiFive Unmatched, loaded by U-Boot SPL

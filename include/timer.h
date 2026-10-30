@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 #ifndef TIMER_H
 #define TIMER_H
 #include <stdint.h>

@@ -1,3 +1,5 @@
+/* SPDX-License-Identifier: GPL-3.0-or-later */
+/* Copyright (C) 2026 Sebastian Alba Vives */
 #ifndef CLIENT_APP_H
 #define CLIENT_APP_H
 
