@@ -115,7 +115,12 @@ def cost(center_triple, tol, ranges):
     queries = 0.0
     for i, center in enumerate(center_triple):
         lo, hi = band(center, tol)
-        frac = min(1.0, (hi - lo) / ranges[i][2])
+        # Clip the band to the reachable range. A ratio the attacker
+        # cannot produce is not a ratio it can aim at, so counting that
+        # part of the band overstates its odds.
+        rlo, rhi, width = ranges[i]
+        lo, hi = max(lo, rlo), min(hi, rhi)
+        frac = min(1.0, max(0.0, hi - lo) / width)
         prob *= frac
         if frac < 1.0:
             queries += math.log2(1.0 / frac)
