@@ -19,9 +19,14 @@ the seven commits that make the difference, exported as a patch series.
 They are an exact record of what was changed and why. Read them to see
 the delta without downloading a full emulator tree.
 
-They are not a build recipe for today's QEMU. The series was written on a
-tree from April 2026 and upstream has moved since, so the hunks no longer
-apply cleanly. Rebasing them onto current QEMU would produce different
+They are not a build recipe for today's QEMU. The upstream commit they were
+written against is da6c4fe60f, the version bump for v11.0.0-rc4 of 14 April
+2026, which entered the measurement tree through a merge of qemu:master two
+days later. These seven patches are the whole difference between that commit
+and the tree the figures were taken on, so checking out da6c4fe60f from
+upstream sources and applying 0001 to 0007 in order reconstructs the
+emulator. Upstream has moved since, so the hunks no longer apply cleanly to
+current QEMU. Rebasing them onto current QEMU would produce different
 code from the one the measurements were taken on, which is worse than
 leaving them as they are.
 
@@ -30,4 +35,5 @@ leaving them as they are.
 The complete emulator, with these patches already applied on the base
 they were written against, is the `tfg-counters` branch of the SECCE
 repository at gitlab.com/secce/qemu-ccore. That tree is the reference for
-reproducing the emulator figures in the thesis.
+reproducing the emulator figures in the thesis, and the patch series above is
+enough to rebuild it from upstream without that repository.

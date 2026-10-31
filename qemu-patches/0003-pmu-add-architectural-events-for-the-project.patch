@@ -1,7 +1,7 @@
 From 1be88992e0d8f618d043d877b548b01762b294a9 Mon Sep 17 00:00:00 2001
 From: Sebastian Alba Vives <sebasjosue84@gmail.com>
 Date: Fri, 21 Aug 2026 05:03:58 -0600
-Subject: [PATCH] pmu: agregar eventos arquitecturales para el TFG
+Subject: [PATCH] pmu: add architectural events for the project
 
 Define seis eventos nuevos en el rango 0xF0-0xF5, fuera de la
 codificacion SBI v0.3. Los selectores de evento son WARL definidos
