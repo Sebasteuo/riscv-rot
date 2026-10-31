@@ -40,7 +40,9 @@ sudo apt install gcc-riscv64-linux-gnu binutils-riscv64-linux-gnu make \
   git ninja-build libglib2.0-dev libpixman-1-dev libslirp-dev python3 \
   python3-venv pkg-config
 
-# the firmware needs a patched QEMU, see qemu-patches/README.md
+# the firmware needs a patched QEMU. That fork lives in a private group,
+# so this step only works with access to it. qemu-patches/ records what
+# changed, see qemu-patches/README.md
 git clone https://gitlab.com/secce/qemu-ccore.git ~/qemu-ccore
 cd ~/qemu-ccore && git checkout tfg-counters
 mkdir -p build && cd build
@@ -153,7 +155,7 @@ branches, indirect jumps, privilege switches and traps taken.
 
 Both are in `qemu-patches/` as a patch series, which records exactly what
 changed. The emulator tree the measurements were taken on is the
-`tfg-counters` branch at gitlab.com/secce/qemu-ccore. See
+`tfg-counters` branch at gitlab.com/secce/qemu-ccore, a private group. See
 `qemu-patches/README.md` for why the patches are a record and not a build
 recipe for today's QEMU.
 
