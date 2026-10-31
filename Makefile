@@ -620,3 +620,24 @@ measure-evade:
 	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
 
 .PHONY: measure-evade
+
+# ---------------------------------------------------------------------------
+# Profile substitution
+#
+# The observed code names the profile its window is judged against, and the
+# firmware does not check that the name matches the application running. This
+# target runs the same scenarios declaring profile 1, aha-mont64, whose bands
+# contain the code reuse window. It lives behind a define so the default
+# binary and the 40 window sweep stay untouched.
+# ---------------------------------------------------------------------------
+measure-subst:
+	@echo "[REV] $(REV)"
+	@touch src/attack.c
+	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DSUBST_PROBE $(TARGET).elf > /dev/null
+	@rm -f secure_storage.bin
+	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -icount shift=0 -smp 1 < /dev/null > /tmp/subst.log 2>&1; true
+	@grep -E "ATK|erdict|NOMINAL|DEVIATION" /tmp/subst.log || echo "  nothing came back"
+	@touch src/attack.c
+	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
+
+.PHONY: measure-subst

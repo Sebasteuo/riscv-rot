@@ -353,8 +353,18 @@ void attack_run(attack_kind_t kind)
     asm volatile("mv %0, sp" : "=r"(recover_sp));
     asm volatile("mv %0, ra" : "=r"(recover_ra));
 
-    /* All three scenarios exercise the same routine, profile 0 */
+    /*
+     * All three scenarios exercise the same routine. The profile the
+     * window is judged against is named by this code, and the firmware
+     * does not check that the name matches the application running.
+     * SUBST_PROBE declares profile 1, aha-mont64, whose three bands
+     * contain the code reuse window.
+     */
+#ifdef SUBST_PROBE
+    bench_set_app(1);
+#else
     bench_set_app(0);
+#endif
     bench_window_open();
 
     switch (kind) {
