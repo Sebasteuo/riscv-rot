@@ -20,10 +20,13 @@ error that is 0.38 per cent at worst, on the 262 store case, and under
 0.0001 per cent at best. The classifier tolerances run from 10 to 35 per
 cent, so the offset sits about 26 times below the tightest one.
 
-The cause was not determined. An emit versus retire explanation was tested
-and ruled out. A barrier between the last store and the counter read
-supported it for an isolated case of three stores, but in the full harness
-the offset survives the barrier.
+The emulator side is established by inspection rather than by hypothesis.
+Patch 0005 emits the counting helper as the first statement of gen_store,
+before the memory operation, so qemu-ccore counts a store at emit time while
+the U74 counts it at retirement. That is the mechanism behind the systematic
+offset of one, and the isolated probe below shows it directly. What is not
+established is why a barrier between the last store and the counter read
+closes the offset in that three-store probe but not in the full harness.
 
 The offset is also bounded to this harness. In the adversarial scenario
 harness the stores match exactly, 20 figures out of 20, so the offset is
@@ -52,7 +55,7 @@ A probe with three stores and nothing else:
 qemu-ccore counts a store when gen_store emits it, and the U74 counts it at
 retirement. The last store before the csrr that reads the counter has
 been emitted but not retired, so the emulator includes it and the core
-does not. This accounts for all 33 offsets in the table above,
+does not. This is the mechanism behind the 33 offsets in the table above,
 independently of whether the benchmark issues 262 stores or 1.5
 million.
 

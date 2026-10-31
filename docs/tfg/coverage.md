@@ -196,8 +196,8 @@ nonce. That is a property of the verifier, which is outside this work.
 | A3 · Runtime compromise | Covered for the scenarios measured | Four adversarial scenarios |
 | A4 · U-mode reaches protected resources | Covered | Tests 1, 2, 32, 33, 34, 36 |
 | A5 · Malformed mailbox commands | Covered | Test 35 |
-| A6 · Classifier evasion | **Partially mitigated** | Nonce-derived points, three ratios |
-| A7 · Report replay | Covered | Nonce in challenge and report |
+| A6 · Classifier evasion | **Demonstrated** | Window placement and profile substitution both evade; nonce-derived points are implemented but were not used in the reported runs |
+| A7 · Report replay | **Partially covered** | The nonce travels in the report, but the included tool does not check it against a pending challenge |
 
 Six covered, one partial. The partial one is the honest outcome: a
 behavioral detector cannot claim immunity to an adversary who models it,
