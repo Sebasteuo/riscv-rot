@@ -1,0 +1,193 @@
+[NOMSIZE] nominal inputs against the frozen profile
+[NOMSIZE] bytes 8
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x00x10x20x3...
+[PERF] Command 0xe response (SRS-P-002): 5516 ticks = 551 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 193,86,33,6,1,2
+[COST] cmd 2230875 reads 203333 class 448667 work 1231959 windows 1
+[PERF] Command 0xf response (SRS-P-002): 20731 ticks = 2073 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 12
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x1f0x200x210x22...
+[PERF] Command 0xe response (SRS-P-002): 1011 ticks = 101 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: nominal
+[ATT] Window closed: 245,102,41,6,1,2
+[COST] cmd 2791374 reads 220374 class 466875 work 1779709 windows 2
+[PERF] Command 0xf response (SRS-P-002): 5784 ticks = 578 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 14
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x3e0x3f0x400x41...
+[PERF] Command 0xe response (SRS-P-002): 1020 ticks = 102 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 271,110,45,6,1,2
+[COST] cmd 3462749 reads 237457 class 476333 work 2315126 windows 3
+[PERF] Command 0xf response (SRS-P-002): 6778 ticks = 677 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 16
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x5d0x5e0x5f0x60...
+[PERF] Command 0xe response (SRS-P-002): 875 ticks = 87 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 297,118,49,6,1,2
+[COST] cmd 4126291 reads 252290 class 480000 work 2829001 windows 4
+[PERF] Command 0xf response (SRS-P-002): 7012 ticks = 701 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 18
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x7c0x7d0x7e0x7f...
+[PERF] Command 0xe response (SRS-P-002): 1006 ticks = 100 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 323,126,53,6,1,2
+[COST] cmd 4807957 reads 272164 class 483959 work 3379168 windows 5
+[PERF] Command 0xf response (SRS-P-002): 6904 ticks = 690 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 20
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0x9b0x9c0x9d0x9e...
+[PERF] Command 0xe response (SRS-P-002): 937 ticks = 93 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: jump ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 349,134,57,6,1,2
+[COST] cmd 5468082 reads 286956 class 487625 work 3902876 windows 6
+[PERF] Command 0xf response (SRS-P-002): 6798 ticks = 679 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 24
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xba0xbb0xbc0xbd...
+[PERF] Command 0xe response (SRS-P-002): 1025 ticks = 102 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: store ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 401,150,65,6,1,2
+[COST] cmd 6160124 reads 303623 class 502542 work 4436168 windows 7
+[PERF] Command 0xf response (SRS-P-002): 7033 ticks = 703 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] bytes 32
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093e96
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Window open, nonce 0xd90xda0xdb0xdc...
+[PERF] Command 0xe response (SRS-P-002): 925 ticks = 92 us (limit 100 ms) -> PASS
+[TRAP] ============================
+
+[TRAP] ============================
+[TRAP] Exception caught!
+[TRAP] mcause = 0x8
+[TRAP] mepc   = 0x80093eea
+[TRAP] mtval  = 0x0
+[TRAP] >> ECALL from U-mode
+[ATT] Verdict: store ratio off
+[ATT] Runtime PCR extended, sealed data is now locked
+[ATT] Window closed: 505,182,81,6,1,2
+[COST] cmd 6819666 reads 320040 class 504792 work 4961709 windows 8
+[PERF] Command 0xf response (SRS-P-002): 6769 ticks = 676 us (limit 100 ms) -> PASS
+[TRAP] ============================
+[NOMSIZE] done

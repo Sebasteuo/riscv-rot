@@ -342,6 +342,44 @@ static void run_small_helper(void)
     vulnerable(input, sizeof(input));
 }
 
+#ifdef NOMINAL_PROBE
+/*
+ * The same nominal path at several input sizes, none of which overflows
+ * the 32 byte destination. The profile was fitted from the 16 byte
+ * window alone, so this is the frozen profile judging sizes it never saw.
+ */
+static void __attribute__((noinline)) run_none_sized(uint32_t n)
+{
+    uint8_t input[32];
+    uint32_t i;
+
+    for (i = 0; i < n; i++) {
+        input[i] = (uint8_t)(i + 1);
+    }
+    benign_helper();
+    vulnerable(input, n);
+}
+
+void attack_nominal_sizes(void)
+{
+    static const uint32_t sizes[] = { 8, 12, 14, 16, 18, 20, 24, 32 };
+    uint32_t k;
+
+    uart_puts("\n[NOMSIZE] nominal inputs against the frozen profile\n");
+    for (k = 0; k < sizeof(sizes) / sizeof(sizes[0]); k++) {
+        uart_puts("[NOMSIZE] bytes ");
+        uart_put_dec((uint64_t)sizes[k]);
+        uart_puts("\n");
+        diverted = 0;
+        bench_set_app(0);
+        bench_window_open();
+        run_none_sized(sizes[k]);
+        bench_window_close();
+    }
+    uart_puts("[NOMSIZE] done\n");
+}
+#endif
+
 void attack_run(attack_kind_t kind)
 {
     diverted = 0;

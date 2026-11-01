@@ -1241,8 +1241,18 @@ void user_entry(void)
      * for this project, which is exactly what using a standard corpus
      * was meant to avoid.
      */
-    /* client_nominal_session(); */
     seal_demo_arm();
+#ifdef NOMINAL_PROBE
+    /*
+     * The hand-written workloads come back only as a separate
+     * measurement, never mixed into the Embench corpus. The call sits
+     * after the seal so a deviation verdict on a nominal window shows
+     * up as a refused unseal. It lives behind a define so the default
+     * binary and the 40 window sweep stay untouched.
+     */
+    extern void attack_nominal_sizes(void);
+    attack_nominal_sizes();
+#endif
     client_bench_varied();
     seal_demo_check("after the nominal windows");
 #ifdef EVADE_PROBE
