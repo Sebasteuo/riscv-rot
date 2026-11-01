@@ -32,3 +32,6 @@ compare/*.bin
 compare/*.elf
 compare/*.o
 __pycache__/
+compare/unmatched/sig.bin
+compare/unmatched/sig.elf
+compare/unmatched/sig.itb

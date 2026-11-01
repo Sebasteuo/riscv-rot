@@ -1,0 +1,13 @@
+
+U-Boot SPL 2025.10-0ubuntu0.24.04.2 (Feb 11 2026 - 18:04:28 +0000)
+Trying to boot from MMC1
+
+=== Stage-1 signature check on U74 ===
+
+clock MHz      25
+
+calls          4
+cycles/call    26894065
+instrs/call    37588819
+us/call        1034434
+valid          1
