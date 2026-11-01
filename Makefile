@@ -641,3 +641,19 @@ measure-subst:
 	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
 
 .PHONY: measure-subst
+
+# -------------------------------------------------------------------------
+# Verdict regression
+#
+# Nothing checked what the classifier decided, so a regression in the
+# profiles or the bands left every other target green. This one pins the
+# 7 observed verdicts, the 33 nominal reference verdicts and the two
+# unseal outcomes those verdicts drive.
+# -------------------------------------------------------------------------
+test-verdicts: $(TARGET).elf
+	@echo "[REV] $(REV)"
+	@rm -f secure_storage.bin
+	@timeout 300 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic -bios none -kernel $(TARGET).elf -smp 1 < /dev/null > /tmp/verdicts.log 2>&1; true
+	@python3 tools/check_verdicts.py /tmp/verdicts.log
+
+.PHONY: test-verdicts
