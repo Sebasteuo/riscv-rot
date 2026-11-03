@@ -96,10 +96,12 @@ asymmetric pair, so the match is in the name and not in the mechanism.
 | `make test-reject` | checks that a tampered image is refused |
 | `make profiles` | prints the nominal profile of every application |
 | `make check-profiles` | evaluates the classifier against those profiles |
+| `make test-verdicts` | checks the sweep verdicts and the resulting unseal outcomes against fixed expected values |
 | `make measure-service` | cost of the attestation service in instructions |
 | `make measure-verdict` | cost of computing one verdict |
 | `make verify-reports` | verifies the authentication code of every report |
 | `make measure-evade` | the window placement trial, both halves |
+| `make measure-subst` | runs the profile substitution trial by declaring another application's profile |
 
 Saved runs from the campaign are under `docs/tfg/`.
 
@@ -139,7 +141,7 @@ Saved runs from the campaign are under `docs/tfg/`.
 | 0x80000000 | crypto core, code, data and stack | blocked |
 | 0x80080000 | shared code: UART, SHA-256, HMAC | read and execute |
 | 0x80090000 | user mode code and stack | read, write and execute |
-| 0x80100000 | secret zone, 4 KB | blocked |
+| 0x80200000 | secret zone, 4 KB | blocked |
 | 0x80300000 | shared mailbox, 4 KB | read and write, no execute |
 
 Slot 0 of the secure storage holds the report key, slot 1 the storage
@@ -149,9 +151,11 @@ slot 6 the sealed data and slot 7 the seal policy hash.
 ## QEMU changes
 
 The firmware needs two things upstream QEMU does not have: a Secure
-Storage device at 0x10200000 with 8 slots of 64 bytes, and seven extra
-event counters outside the SBI encoding that count loads, stores,
-branches, indirect jumps, privilege switches and traps taken.
+Storage device at 0x10200000 with 8 slots of 64 bytes, and seven
+additional event counters with codes outside the SBI encoding, covering
+loads, stores, taken conditional branches, indirect jumps, privilege
+switches, traps taken, and retired conditional branches. The last event
+was added for comparison with silicon.
 
 Both are in `qemu-patches/` as a patch series, which records exactly what
 changed. The emulator tree the measurements were taken on is the
