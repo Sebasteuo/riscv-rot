@@ -59,7 +59,7 @@ in CI, run `make test` instead.
 
 ## Architecture
 
-![Architecture Diagram](docs/architecture.png)
+![Architecture Diagram](docs/diagram/architecture.png)
 
 ## Services
 
