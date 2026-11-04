@@ -7,7 +7,7 @@ Branch: `tfg-counters` in the qemu-ccore fork.
 
 ---
 
-## 1. Starting point
+## 1 · Starting point
 
 Upstream QEMU defines five performance counter events for RISC-V, and
 only two of them actually count:
@@ -31,7 +31,7 @@ with the `LCOFI` interrupt, and dynamic event to counter mapping.
 
 ---
 
-## 2. New events
+## 2 · New events
 
 Six events in the `0xF0`-`0xF5` range, which falls outside the SBI v0.3
 encoding. The privileged specification states that event selectors are
@@ -49,7 +49,7 @@ rather than a workaround.
 
 ---
 
-## 3. Changes to qemu-ccore
+## 3 · Changes to qemu-ccore
 
 Five files, all on the `tfg-counters` branch.
 
@@ -94,7 +94,7 @@ branch instead.
 
 ---
 
-## 4. Firmware side
+## 4 · Firmware side
 
 **`include/hpm.h`** defines the event ids, the physical counter indices
 and the privilege inhibit bits.
@@ -107,7 +107,7 @@ so the counts cover the monitored run rather than the M-mode setup.
 
 ---
 
-## 5. Privilege mode filtering
+## 5 · Privilege mode filtering
 
 The four instruction counters run with `MINH` set, which stops counting
 while the processor is in M-mode.
@@ -136,7 +136,7 @@ weakness of counter-based security work on commodity systems.
 
 ---
 
-## 6. Verification
+## 6 · Verification
 
 ### Unit tests
 
@@ -194,29 +194,33 @@ attributable to executed work rather than to counting error.
 
 ---
 
-## 7. Known limitations
+## 7 · Known limitations
 
-**Event to counter mapping is one to one.** `riscv_pmu_update_event_map`
+### Event to counter mapping is one to one
+
+`riscv_pmu_update_event_map`
 returns early if the event id is already present in the lookup table, so
 writing the same event to a second `mhpmevent` register is silently
 ignored. A filtered and an unfiltered view of the same event cannot
 coexist within a single run. The comparison in section 5 was obtained by
 running twice with different configurations.
 
-**Cycle and instruction counts are approximated.** The two upstream
-events derive from the host clock or from icount rather than being
-simulated. The six events added here are incremented per event and do
-not share that property.
+### Cycle and instruction counts are approximated
 
-**Counters are architectural, not microarchitectural.** Cache and TLB
-behavior is not modelled with fidelity under functional emulation, so
-events of that kind are unavailable by construction. This constrains the
-feature set for OE3 and is declared as a limitation rather than
-presented as a design preference.
+The two upstream events derive from the host clock or from icount
+rather than being simulated. The six events added here are
+incremented per event and do not share that property.
+
+### Counters are architectural, not microarchitectural
+
+Cache and TLB behavior is not modelled with fidelity under functional
+emulation, so events of that kind are unavailable by construction. This
+constrains the feature set for OE3 and is declared as a limitation
+rather than presented as a design preference.
 
 ---
 
-## 8. Reproducing
+## 8 · Reproducing
 
     cd qemu-ccore
     git checkout tfg-counters

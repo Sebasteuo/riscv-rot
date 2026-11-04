@@ -17,21 +17,26 @@ answers.
 
 On top of that base the project adds three things.
 
-**A two stage secure boot.** A small first stage verifies an Ed25519
-signature over the second stage before handing control to it. The public
-key lives in the read only section of the first stage, so replacing it
-means replacing the stage that holds it.
+### A two stage secure boot
 
-**Runtime attestation from event counters.** The firmware programs the
-hardware performance counters, opens a measurement window around the code
-it observes, and compares three ratios against a per application profile.
-The verdict is computed inside the root of trust, not on a remote
-verifier, and it gates access to sealed secrets.
+A small first stage verifies an Ed25519 signature over the second stage
+before handing control to it. The public key lives in the read only
+section of the first stage, so replacing it means replacing the stage
+that holds it.
 
-**A measurement campaign on emulator and on silicon.** Every count was
-taken twice, once under QEMU with instruction accounting and once on a
-HiFive Unmatched board with four SiFive U74 cores, and the two were
-compared figure by figure.
+### Runtime attestation from event counters
+
+The firmware programs the hardware performance counters, opens a
+measurement window around the code it observes, and compares three ratios
+against a per application profile. The verdict is computed inside the
+root of trust, not on a remote verifier, and it gates access to sealed
+secrets.
+
+### A measurement campaign on emulator and on silicon
+
+Every count was taken twice, once under QEMU with instruction
+accounting and once on a HiFive Unmatched board with four SiFive U74
+cores, and the two were compared figure by figure.
 
 ## Quick start
 

@@ -23,7 +23,7 @@ rests on something not measured, the entry says so.
 
 ## A1 · Modify the firmware while the device is powered off
 
-**Covered.**
+### Covered
 
 The image carries an Ed25519 signature over the SHA-256 digest of its
 payload. Stage-1 verifies that signature before parsing any field of the
@@ -34,16 +34,20 @@ Established by `tools/attack_demo.py`, scenario two: a single byte
 flipped anywhere in the payload changes the digest, the signature no
 longer verifies, and the boot halts.
 
-**Where it stops.** The verification proves the image was signed by the
-holder of the private key. It says nothing about whether that key holder
-intended this particular version, which is what the anti-rollback
-counter addresses separately.
+### Where it stops
+
+The verification proves the image was signed by the holder of the
+private key. It says nothing about whether that key holder intended this
+particular version, which is what the anti-rollback counter addresses
+separately.
 
 ---
 
 ## A2 · Modify the reference value together with the firmware
 
-**Covered. This is the gap OE1 was written to close.**
+### Covered
+
+This is the gap OE1 was written to close.
 
 The previous scheme compared measurements against golden hashes stored
 on the same device, so an attacker able to rewrite both passed. The new
@@ -55,16 +59,20 @@ Established by `tools/attack_demo.py`, scenario three: firmware and
 reference value are modified together and the boot still halts. That
 scenario is the one that defeated the previous design.
 
-**Where it stops.** An attacker who replaces the embedded public key
-does not gain anything, since they still cannot sign. But an attacker
-who obtains the private key defeats the scheme entirely. Key custody is
-outside this work.
+### Where it stops
+
+An attacker who replaces the embedded public key does not gain
+anything, since they still cannot sign. But an attacker who obtains the
+private key defeats the scheme entirely. Key custody is outside this
+work.
 
 ---
 
 ## A3 · Compromise the U-mode system at runtime
 
-**Covered for the scenarios measured. This is the gap OE3 addresses.**
+### Covered for the scenarios measured
+
+This is the gap OE3 addresses.
 
 Four adversarial scenarios were implemented and measured against the
 same vulnerable routine:
@@ -88,7 +96,9 @@ diverted, yet the extra copying shifts the ratios enough to be caught.
 The classifier is therefore reacting to two distinct things rather than
 to diversion alone.
 
-**Where it stops.** Detection is bounded by the sensitivity measured in
+### Where it stops
+
+Detection is bounded by the sensitivity measured in
 `tools/sensitivity.py`: the vulnerable routine reacts at 11 percent
 deviation, and the measured attacks deviate by 15 to 88 percent. A
 compromise that stays inside that band is not detected. This is the
@@ -98,8 +108,8 @@ substance of A6 below.
 
 ## A4 · Read or write crypto core resources from U-mode
 
-**Covered. Inherited from CE-1114 and re-verified after the memory map
-changed.**
+Covered. Inherited from CE-1114 and re-verified after the memory map
+changed.
 
 Six PMP regions with no catch-all entry, so anything not explicitly
 granted is denied to U-mode. Tests 1, 2, 32, 33 and 34 attempt the
@@ -113,18 +123,21 @@ the exception, so the relocation did not weaken the isolation.
 Test 36 was added for this project: it attempts to read the counters
 from U-mode and receives an illegal instruction.
 
-**Where it stops.** The regions are not locked. PMP provides a lock bit
-that makes an entry immutable until reset, and this platform does not
-use it, so M-mode can reconfigure PMP at any time. That is consistent
-with the threat model, which treats M-mode as trusted, but it means the
-isolation protects against U-mode rather than against arbitrary code at
-any privilege.
+### Where it stops
+
+The regions are not locked. PMP provides a lock bit that makes an entry
+immutable until reset, and this platform does not use it, so M-mode can
+reconfigure PMP at any time. That is consistent with the threat model,
+which treats M-mode as trusted, but it means the isolation protects
+against U-mode rather than against arbitrary code at any privilege.
 
 ---
 
 ## A5 · Send arbitrary or malformed commands through the mailbox
 
-**Covered. Inherited from CE-1114.**
+### Covered
+
+Inherited from CE-1114.
 
 The dispatcher validates the command code and the declared size before
 acting. Test 35 sends an unknown command and receives an error with
@@ -134,15 +147,19 @@ The two commands added by this project follow the same discipline. The
 attestation report command returns a fixed-size response and the window
 commands validate that a window is open before closing it.
 
-**Where it stops.** The validation is per command. A sequence of
-individually valid commands that produces an unintended state was not
-systematically explored.
+### Where it stops
+
+The validation is per command. A sequence of individually valid
+commands that produces an unintended state was not systematically
+explored.
 
 ---
 
 ## A6 · Evade the classifier by shaping the counter profile
 
-**Partially mitigated. Reported as partial.**
+### Partially mitigated
+
+Reported as partial.
 
 Two mechanisms bear on this.
 
@@ -159,19 +176,21 @@ blind on indirect jumps, where their nominal ratio of 23 parts per ten
 thousand falls under the absolute floor, but neither is blind on the
 other two. No application in the corpus is blind on all three.
 
-**Where it stops.** Neither mechanism makes evasion impossible. An
-adversary who compromises every path still passes, and an attack shaped
-to stay within the detection band of all three ratios is not caught.
-Dinakarrao and coauthors demonstrate that detectors built on hardware
-events are evadable by an adversary who models them, and nothing here
-contradicts that. What the work establishes is the size of the band an
-attacker must stay inside, which is a quantity rather than an assurance.
+### Where it stops
+
+Neither mechanism makes evasion impossible. An adversary who compromises
+every path still passes, and an attack shaped to stay within the
+detection band of all three ratios is not caught. Dinakarrao and
+coauthors demonstrate that detectors built on hardware events are
+evadable by an adversary who models them, and nothing here contradicts
+that. What the work establishes is the size of the band an attacker must
+stay inside, which is a quantity rather than an assurance.
 
 ---
 
 ## A7 · Replay an old attestation report
 
-**Covered.**
+### Covered
 
 Each attestation is opened by a challenge carrying a 16-byte nonce
 supplied by the external verifier, and the nonce travels back in the
@@ -182,8 +201,10 @@ The nonce is supplied by the verifier rather than generated on the
 device, which is what makes the freshness guarantee meaningful: a
 compromised device cannot choose the value it will be challenged with.
 
-**Where it stops.** Freshness depends on the verifier never repeating a
-nonce. That is a property of the verifier, which is outside this work.
+### Where it stops
+
+Freshness depends on the verifier never repeating a nonce. That is a
+property of the verifier, which is outside this work.
 
 ---
 
