@@ -660,6 +660,7 @@ nominal-sweep:
 		> data/sweep5.log 2>&1; true
 	@echo "recorded $$(grep -c 'Window closed' data/sweep5.log) windows in data/sweep5.log"
 	@python3 tools/fit_profiles.py data/sweep5.log
+	@python3 tools/holdout_profiles.py data/sweep5.log | tail -3
 	@touch src/attack.c src/user.c
 	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
 

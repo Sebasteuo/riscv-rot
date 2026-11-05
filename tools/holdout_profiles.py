@@ -2,12 +2,13 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Sebastian Alba Vives
 """
-Leave one intensity out.
+Hold out one intensity.
 
-Fits the profiles with 2 of the 3 work intensities and judges the third
-against them, so every window counted here took no part in its own fit.
-The three global values are left as they are, because they were not
-fitted from this data either.
+For each profile, the procedure leaves out one intensity, fits the profile
+using the remaining intensities, and evaluates the excluded window against
+that profile. This means no window is evaluated using a profile fitted from
+that same window. The three global values remain unchanged because they were
+not fitted from these data either.
 
 Usage:
     python3 tools/holdout_profiles.py data/run.log
@@ -77,27 +78,27 @@ def main():
     for name, gsf, v in parse(path):
         by_app.setdefault(name, {})[gsf] = ratios(v)
 
-    apps = sorted(a for a, d in by_app.items() if len(d) == 3)
+    apps = sorted(a for a, d in by_app.items() if len(d) >= 3)
     names = ("store", "branch", "jump")
     total = 0
     rejected = 0
 
-    print("%d applications measured at 3 intensities" % len(apps))
+    print("%d applications measured at 3 or more intensities" % len(apps))
     print()
-    print("%-16s %9s %9s %9s" % ("APPLICATION", "hold g1", "hold g2", "hold g3"))
+    print("%-16s %s" % ("APPLICATION", "held-out verdicts, one per intensity"))
     print("-" * 48)
 
     for app in apps:
         d = by_app[app]
         row = []
-        for held in (1, 2, 3):
-            p = fit([d[g] for g in (1, 2, 3) if g != held])
+        for held in sorted(d):
+            p = fit([d[g] for g in sorted(d) if g != held])
             w = verdict(p, d[held])
             total += 1
             if w >= 0:
                 rejected += 1
             row.append(names[w] if w >= 0 else "ok")
-        print("%-16s %9s %9s %9s" % (app, row[0], row[1], row[2]))
+        print("%-16s %s" % (app, " ".join("%-9s" % x for x in row)))
 
     print("-" * 48)
     print("%d of %d held-out nominal windows were rejected" % (rejected, total))
