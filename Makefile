@@ -642,6 +642,30 @@ measure-subst:
 
 .PHONY: measure-subst
 
+# ---------------------------------------------------------------------------
+# Nominal sweep of the observed application
+#
+# This target measures the observed application at five input lengths so its
+# profile can be fitted from the observed variation rather than the global
+# minimum tolerance. It leaves the firmware's profile unchanged and rebuilds
+# the default binary once the run is complete.
+# ---------------------------------------------------------------------------
+nominal-sweep:
+	@echo "[REV] $(REV)"
+	@touch src/attack.c src/user.c
+	@$(MAKE) --no-print-directory EXTRA_CFLAGS=-DNOMINAL_SWEEP $(TARGET).elf > /dev/null
+	@rm -f secure_storage.bin
+	@timeout 60 $(QEMU) -machine virt -cpu rv64 -m 128M -nographic \
+		-bios none -kernel $(TARGET).elf -smp 1 < /dev/null \
+		> data/sweep5.log 2>&1; true
+	@echo "recorded $$(grep -c 'Window closed' data/sweep5.log) windows in data/sweep5.log"
+	@python3 tools/fit_profiles.py data/sweep5.log
+	@touch src/attack.c src/user.c
+	@$(MAKE) --no-print-directory $(TARGET).elf > /dev/null
+
+.PHONY: nominal-sweep
+
+
 # -------------------------------------------------------------------------
 # Verdict regression
 #

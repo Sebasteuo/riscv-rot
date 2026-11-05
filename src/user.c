@@ -1343,6 +1343,9 @@ void user_entry(void)
     }
 #endif
 
+#ifdef NOMINAL_SWEEP
+    attack_nominal_sweep();
+#endif
     attack_session();
     seal_demo_check("after the adversarial windows");
 

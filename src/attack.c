@@ -163,6 +163,66 @@ static void run_none(void)
     vulnerable(input, sizeof(input));
 }
 
+/*
+ * The sweep runs the observed application three times with nominal
+ * inputs that differ only in length. Each input fits in the 32-byte
+ * destination, so all three runs follow the baseline path without
+ * overflowing. Using a separate function for each fixed input length
+ * keeps the generated code for the 16-byte case identical to what it
+ * was before the sweep was added.
+ */
+static void run_none_8(void)
+{
+    /* An input that fits. Same code path, no overflow. */
+    uint8_t input[8];
+    int i;
+
+    for (i = 0; i < 8; i++) {
+        input[i] = (uint8_t)(i + 1);
+    }
+    benign_helper();
+    vulnerable(input, sizeof(input));
+}
+
+static void run_none_12(void)
+{
+    /* An input that fits. Same code path, no overflow. */
+    uint8_t input[12];
+    int i;
+
+    for (i = 0; i < 12; i++) {
+        input[i] = (uint8_t)(i + 1);
+    }
+    benign_helper();
+    vulnerable(input, sizeof(input));
+}
+
+static void run_none_20(void)
+{
+    /* An input that fits. Same code path, no overflow. */
+    uint8_t input[20];
+    int i;
+
+    for (i = 0; i < 20; i++) {
+        input[i] = (uint8_t)(i + 1);
+    }
+    benign_helper();
+    vulnerable(input, sizeof(input));
+}
+
+static void run_none_24(void)
+{
+    /* An input that fits. Same code path, no overflow. */
+    uint8_t input[24];
+    int i;
+
+    for (i = 0; i < 24; i++) {
+        input[i] = (uint8_t)(i + 1);
+    }
+    benign_helper();
+    vulnerable(input, sizeof(input));
+}
+
 static void run_redirect(void)
 {
     /*
@@ -419,6 +479,32 @@ void attack_run(attack_kind_t kind)
 
     /* The diverted paths close their own window before recovering */
     if (!diverted) {
+        bench_window_close();
+    }
+}
+
+/*
+ * The sweep shows what the observed application's profile would look
+ * like if it were characterised at three workload levels, as was done
+ * for the eleven reference applications. The firmware continues to use
+ * its existing profile.
+ */
+void attack_nominal_sweep(void)
+{
+    static void (* const body[5])(void) = { run_none_8, run_none_12, run_none, run_none_20, run_none_24 };
+    static const char *const level[5] = { "g1", "g2", "g3", "g4", "g5" };
+    int g;
+
+    uart_puts("\n[APP] === observed application, varied input ===\n");
+
+    for (g = 0; g < 5; g++) {
+        uart_puts("[APP] none ");
+        uart_puts(level[g]);
+        uart_puts("\n");
+
+        bench_set_app(0);
+        bench_window_open();
+        body[g]();
         bench_window_close();
     }
 }

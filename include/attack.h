@@ -105,6 +105,9 @@ typedef enum {
 void attack_run(attack_kind_t kind);
 
 /* Run all of them in sequence */
+/* Run the three nominal windows of the observed application */
+void attack_nominal_sweep(void);
+
 void attack_session(void);
 
 #endif /* ATTACK_H */
