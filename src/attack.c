@@ -171,6 +171,7 @@ static void run_none(void)
  * keeps the generated code for the 16-byte case identical to what it
  * was before the sweep was added.
  */
+#ifdef NOMINAL_SWEEP
 static void run_none_8(void)
 {
     /* An input that fits. Same code path, no overflow. */
@@ -222,6 +223,7 @@ static void run_none_24(void)
     benign_helper();
     vulnerable(input, sizeof(input));
 }
+#endif
 
 static void run_redirect(void)
 {
@@ -489,6 +491,7 @@ void attack_run(attack_kind_t kind)
  * for the eleven reference applications. The firmware continues to use
  * its existing profile.
  */
+#ifdef NOMINAL_SWEEP
 void attack_nominal_sweep(void)
 {
     static void (* const body[5])(void) = { run_none_8, run_none_12, run_none, run_none_20, run_none_24 };
@@ -508,6 +511,7 @@ void attack_nominal_sweep(void)
         bench_window_close();
     }
 }
+#endif
 
 void attack_session(void)
 {
